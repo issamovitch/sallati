@@ -1,5 +1,5 @@
 {
-  "name": "sallati-scaffold",
+  "name": "sallati",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@salla.sa/embedded-sdk": "^0.2.7",
+    "@supabase/supabase-js": "^2.119.0",
     "next": "16.4.5",
+    "nextjs-toploader": "^3.9.17",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-colorful": "^5.8.1",
+    "react-dom": "19.3.0",
+    "react-icons": "^5.7.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

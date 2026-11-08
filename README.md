@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sallati
 
-## Getting Started
+Minimal Salla embedded app. Next.js 16 (App Router) + Tailwind + `@salla.sa/embedded-sdk`.
 
-First, run the development server:
+## Run
 
-```bash
+```powershell
+npm install
+Copy-Item .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tunnel (Salla must reach your machine)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```powershell
+.\.tools\cloudflared.exe tunnel --url http://localhost:3000 --no-autoupdate
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Use the `https://*.trycloudflare.com` URL it prints. Do not use free ngrok: its
+interstitial page breaks iframes.
 
-## Learn More
+## Connect it to the demo store
 
-To learn more about Next.js, take a look at the following resources:
+1. Partners Portal -> **My Apps** -> your app -> **Embedded Pages** -> Add:
+   - **Route Slug**: `sallati`
+   - **Iframe URL**: `https://<tunnel>/embedded`
+   - **Default Page**: on
+2. **App Testing** -> **Install App** on your demo store (skip if installed).
+3. Demo store dashboard -> **Apps** -> Sallati -> **Use App**.
+4. Copy the **App ID** into `.env.local` as `SALLA_APP_ID`, then restart `npm run dev`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Routes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Route | Purpose |
+| --- | --- |
+| `/` | Status + env checklist |
+| `/embedded` | Iframe UI; needs `?token=` from Salla |
+| `/api/health` | Uptime/tunnel check |
+| `POST /api/embedded/session` | Verifies the token via Salla introspection |
+| `GET /api/store/link` | Returns the storefront URL for a merchant (cached from OAuth) |
+| `POST /webhooks/salla` | HMAC-verified app events; stores OAuth tokens + store link |
 
-## Deploy on Vercel
+## Store link (Preview button)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The embedded session token cannot read store details. The storefront URL is
+discovered after Easy Mode sends `app.store.authorize` to
+`<NEXT_PUBLIC_APP_URL>/webhooks/salla`:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Set `SALLA_WEBHOOK_SECRET` and register that webhook URL in the Partners Portal.
+2. Reinstall the app on the demo store so Salla emits `app.store.authorize`.
+3. The webhook stores the OAuth token in `.data/stores.json` and resolves the
+   store link via `GET https://api.salla.dev/admin/v2/stores/{merchant_id}`.
+
+`NEXT_PUBLIC_STORE_URL` overrides discovery. If neither is available, the
+Preview button asks for the link once and saves it in the browser.
