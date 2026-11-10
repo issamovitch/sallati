@@ -27,7 +27,7 @@ export default function Home() {
           href="/api/health"
         >
           <h2 className="font-medium">فحص الحالة ←</h2>
-          <Hint className="mt-1">نقطة JSON للتأكد من عمل الخادم والنفق.</Hint>
+          <Hint className="mt-1">نقطة JSON للتأكد من عمل الخادم.</Hint>
         </a>
       </div>
 

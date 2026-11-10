@@ -6,7 +6,7 @@
 (function () {
   "use strict";
 
-  var APP_ORIGIN = "https://layers-breed-unit-sudden.trycloudflare.com";
+  var APP_ORIGIN = "https://sallati-delta.vercel.app";
 
   if (window.SallatiOffersBar) return;
 

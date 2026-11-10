@@ -3,7 +3,7 @@
 
   // Public origin of the Sallati app. Only a fallback: when this file is loaded
   // through the loader snippet, document.currentScript.src is the true origin.
-  var APP_ORIGIN = "https://layers-breed-unit-sudden.trycloudflare.com";
+  var APP_ORIGIN = "https://sallati-delta.vercel.app";
   var DEFAULT_SLIDE_MS = 500;
   var DEFAULT_DURATION = 5;
 
