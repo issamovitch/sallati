@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { HiArrowPath } from "react-icons/hi2";
 import {
   DEFAULT_TOP_OFFERS_BAR,
   MAX_ANIMATION_SPEED,
@@ -21,6 +22,7 @@ import {
   ColorField,
   DangerButton,
   Field,
+  GhostButton,
   LinkButton,
   Select,
   TextInput,
@@ -58,34 +60,38 @@ function buildPreviewDoc(snippet: string) {
 export default function TopOffersBarConfig() {
   const [config, setConfig] = useState<Config>(DEFAULT_TOP_OFFERS_BAR);
   const [snippet, setSnippet] = useState("");
+  const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
   const { show } = useToast();
 
   const previewDoc = useMemo(() => (snippet ? buildPreviewDoc(snippet) : ""), [snippet]);
 
-  function pushPreview() {
+  function loadSnippet() {
+    fetch("/storefront-offers-bar.js", { cache: "no-store" })
+      .then((response) => response.text())
+      .then((text) => setSnippet(text))
+      .catch(() => {});
+  }
+
+  function refreshPreview() {
+    setPreviewKey((key) => key + 1);
+    loadSnippet();
+  }
+
+  const pushPreview = useCallback(() => {
     previewRef.current?.contentWindow?.postMessage(
       { type: "sallati:preview", config },
       "*",
     );
-  }
+  }, [config]);
 
   useEffect(() => {
     const timer = window.setTimeout(pushPreview, 200);
     return () => window.clearTimeout(timer);
-  }, [config, previewDoc]);
+  }, [pushPreview, previewDoc, previewKey]);
 
   useEffect(() => {
-    let cancelled = false;
-    fetch("/storefront-offers-bar.js", { cache: "no-store" })
-      .then((response) => response.text())
-      .then((text) => {
-        if (!cancelled) setSnippet(text);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    loadSnippet();
   }, []);
 
   useEffect(() => {
@@ -129,6 +135,7 @@ export default function TopOffersBarConfig() {
     if (isSupabaseConfigured()) {
       void writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
     }
+    refreshPreview();
     show("تم الحفظ");
   }
 
@@ -272,14 +279,29 @@ export default function TopOffersBarConfig() {
       </div>
 
       <div className="space-y-5">
-        <Card title="معاينة">
-          <div className="mt-2 overflow-hidden rounded-lg border border-black/10 dark:border-white/10">
+        <Card
+          title="معاينة"
+          action={
+            <GhostButton
+              type="button"
+              size="sm"
+              onClick={refreshPreview}
+              aria-label="تحديث المعاينة"
+              title="تحديث المعاينة"
+              className="!px-2 !py-1"
+            >
+              <HiArrowPath className="size-4" />
+            </GhostButton>
+          }
+        >
+          <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
             {!config.enabled ? (
               <div className="bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-400 dark:bg-zinc-800">
                 الشريط معطّل
               </div>
             ) : snippet ? (
               <iframe
+                key={previewKey}
                 ref={previewRef}
                 title="معاينة شريط العروض"
                 srcDoc={previewDoc}
