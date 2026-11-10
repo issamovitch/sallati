@@ -203,9 +203,24 @@
   // Exposed so the dashboard preview can render with this exact code.
   window.SallatiOffersBar = { render: renderBar };
 
+  // Existing installs only paste the offers-bar loader. Pull the other
+  // storefront modules in too, so they keep working without a re-paste.
+  function loadCompanionModules() {
+    if (window.__SALLATI_PREVIEW__) return;
+    if (window.SallatiLuckWheel) return;
+    if (document.getElementById("sallati-luck-wheel-script")) return;
+
+    var script = document.createElement("script");
+    script.id = "sallati-luck-wheel-script";
+    script.src = resolveOrigin() + "/storefront-luck-wheel.js?v=" + Date.now();
+    script.async = true;
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     // The dashboard preview renders with local (unsaved) state instead.
     if (window.__SALLATI_PREVIEW__) return;
+    loadCompanionModules();
 
     var merchantId = getMerchantId();
     if (!merchantId) return;
