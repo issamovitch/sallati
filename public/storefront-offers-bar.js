@@ -58,6 +58,7 @@
     var style = document.createElement("style");
     style.id = "sallati-offers-bar-style";
     style.textContent =
+      "#sallati-offers-bar,#sallati-offers-bar *{box-sizing:border-box;}" +
       "#sallati-offers-bar a{color:inherit;text-decoration:underline;}" +
       "#sallati-offers-bar svg{display:inline-block;width:1em;height:1em;vertical-align:-0.125em;}" +
       "#sallati-offers-bar b,#sallati-offers-bar strong{font-weight:700;}" +
@@ -125,7 +126,7 @@
     function makeSlide(html) {
       var slide = document.createElement("div");
       slide.style.cssText =
-        "flex:0 0 100%;width:100%;height:100%;" +
+        "box-sizing:border-box;flex:0 0 100%;width:100%;height:100%;" +
         "display:flex;align-items:center;justify-content:center;" +
         "padding:0 16px;text-align:center;direction:rtl;";
       slide.innerHTML = html || "";
