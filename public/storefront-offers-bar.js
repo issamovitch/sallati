@@ -1,17 +1,20 @@
 (function () {
   "use strict";
 
-  // Public origin of the Sallati app. Salla injects snippets inline, so
-  // document.currentScript is usually null and the origin cannot be derived.
-  var APP_ORIGIN = "https://walk-prospects-matches-mandatory.trycloudflare.com";
+  // Public origin of the Sallati app. Only a fallback: when this file is loaded
+  // through the loader snippet, document.currentScript.src is the true origin.
+  var APP_ORIGIN = "https://layers-breed-unit-sudden.trycloudflare.com";
   var DEFAULT_SLIDE_MS = 500;
   var DEFAULT_DURATION = 5;
 
   function resolveOrigin() {
-    if (APP_ORIGIN) return APP_ORIGIN.replace(/\/+$/, "");
     var script = document.currentScript;
     try {
-      return new URL(script && script.src ? script.src : window.location.href).origin;
+      if (script && script.src) return new URL(script.src).origin;
+    } catch (e) {}
+    if (APP_ORIGIN) return APP_ORIGIN.replace(/\/+$/, "");
+    try {
+      return new URL(window.location.href).origin;
     } catch (e) {
       return window.location.origin;
     }
@@ -76,9 +79,12 @@
   }
 
   function renderBar(cfg) {
-    if (!cfg || cfg.enabled !== true) return;
-
     var existing = document.getElementById("sallati-offers-bar");
+    if (!cfg || cfg.enabled !== true) {
+      if (existing) existing.remove();
+      return;
+    }
+
     if (existing) existing.remove();
 
     var texts = Array.isArray(cfg.texts) && cfg.texts.length
@@ -193,7 +199,13 @@
     });
   }
 
+  // Exposed so the dashboard preview can render with this exact code.
+  window.SallatiOffersBar = { render: renderBar };
+
   function init() {
+    // The dashboard preview renders with local (unsaved) state instead.
+    if (window.__SALLATI_PREVIEW__) return;
+
     var merchantId = getMerchantId();
     if (!merchantId) return;
 

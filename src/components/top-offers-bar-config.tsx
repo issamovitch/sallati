@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_TOP_OFFERS_BAR,
   MAX_ANIMATION_SPEED,
@@ -32,23 +32,61 @@ import {
 const OFFERS_MODULE_NUM = moduleNumbers["top-offers-bar"] ?? 1;
 const MAX_TEXTS = 5;
 
+/**
+ * Isolated document that loads the real storefront snippet. Nothing is fetched
+ * from the database: the parent page pushes the live (unsaved) config in.
+ */
+function buildPreviewDoc(snippet: string) {
+  const js = snippet.replace(/<\/script/gi, "<\\/script");
+  return [
+    "<!doctype html><html lang=\"ar\" dir=\"rtl\"><head><meta charset=\"utf-8\" />",
+    "<style>html,body{margin:0;padding:0;overflow:hidden;background:transparent;}</style>",
+    "</head><body>",
+    "<script>window.__SALLATI_PREVIEW__=true;</script>",
+    "<script>" + js + "</script>",
+    "<script>",
+    "window.addEventListener('message',function(event){",
+    "var data=event.data;",
+    "if(!data||data.type!=='sallati:preview')return;",
+    "window.SallatiOffersBar.render(data.config);",
+    "});",
+    "</script>",
+    "</body></html>",
+  ].join("");
+}
+
 export default function TopOffersBarConfig() {
   const [config, setConfig] = useState<Config>(DEFAULT_TOP_OFFERS_BAR);
-  const [previewIndex, setPreviewIndex] = useState(0);
+  const [snippet, setSnippet] = useState("");
+  const previewRef = useRef<HTMLIFrameElement | null>(null);
   const { show } = useToast();
 
-  useEffect(() => {
-    setPreviewIndex(0);
-  }, [config.texts.length]);
+  const previewDoc = useMemo(() => (snippet ? buildPreviewDoc(snippet) : ""), [snippet]);
+
+  function pushPreview() {
+    previewRef.current?.contentWindow?.postMessage(
+      { type: "sallati:preview", config },
+      "*",
+    );
+  }
 
   useEffect(() => {
-    if (config.texts.length <= 1) return;
-    const text = config.texts[previewIndex];
-    const timer = window.setTimeout(() => {
-      setPreviewIndex((index) => (index + 1) % config.texts.length);
-    }, (text?.duration ?? 5) * 1000);
+    const timer = window.setTimeout(pushPreview, 200);
     return () => window.clearTimeout(timer);
-  }, [previewIndex, config.texts]);
+  }, [config, previewDoc]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/storefront-offers-bar.js", { cache: "no-store" })
+      .then((response) => response.text())
+      .then((text) => {
+        if (!cancelled) setSnippet(text);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -224,36 +262,38 @@ export default function TopOffersBarConfig() {
               + إضافة نص
             </LinkButton>
           )}
+
+          <div className="mt-5 flex items-center justify-end gap-3">
+            <Button type="button" onClick={save}>
+              حفظ
+            </Button>
+          </div>
         </Card>
       </div>
 
       <div className="space-y-5">
         <Card title="معاينة">
           <div className="mt-2 overflow-hidden rounded-lg border border-black/10 dark:border-white/10">
-            {config.enabled ? (
-              <div
-                key={previewIndex}
+            {!config.enabled ? (
+              <div className="bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-400 dark:bg-zinc-800">
+                الشريط معطّل
+              </div>
+            ) : snippet ? (
+              <iframe
+                ref={previewRef}
+                title="معاينة شريط العروض"
+                srcDoc={previewDoc}
+                onLoad={pushPreview}
                 style={{
-                  backgroundColor: config.color,
                   height: `${config.height}px`,
-                  fontFamily: config.fontFamily,
-                  fontSize: `${config.fontSize}px`,
-                  animation:
-                    config.texts.length > 1
-                      ? `sallati-preview-slide ${config.animationSpeed}ms ease`
-                      : undefined,
-                }}
-                className="flex items-center justify-center px-3 text-center font-medium text-white"
-                dangerouslySetInnerHTML={{
-                  __html:
-                    config.texts[previewIndex]?.message ||
-                    config.texts[0]?.message ||
-                    "…",
+                  width: "100%",
+                  border: 0,
+                  display: "block",
                 }}
               />
             ) : (
               <div className="bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-400 dark:bg-zinc-800">
-                الشريط معطّل
+                جارٍ التحميل…
               </div>
             )}
           </div>
