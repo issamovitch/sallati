@@ -19,6 +19,9 @@ const SLOW_AFTER_MS = 12_000;
 
 const STORE_WINDOW_NAME = "sallati-store-preview";
 
+// Demo merchant used when the dashboard is opened without a Salla session.
+const DEFAULT_MERCHANT_ID = 1469694745;
+
 // Sallati is Arabic-only: force RTL regardless of the dashboard locale.
 const APP_LANG = "ar";
 const APP_DIR = "rtl";
@@ -167,6 +170,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
   const [slow, setSlow] = useState(false);
   const [merchantId, setMerchantId] = useState<number | null>(null);
   const [localPreview, setLocalPreview] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [storeUrl, setStoreUrl] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -183,26 +187,24 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
       try {
         // Localhost preview: render the full dashboard without a Salla session.
         if (isLocalDevPreview()) {
-          try { sessionStorage.setItem("sallati.merchant-id", "0"); } catch { /* */ }
+          try { sessionStorage.setItem("sallati.merchant-id", String(DEFAULT_MERCHANT_ID)); } catch { /* */ }
+          setMerchantId(DEFAULT_MERCHANT_ID);
           setLocalPreview(true);
           setStoreUrl("/");
           setStatus("ready");
           return;
         }
 
-        // Direct visits (the tunnel URL or another host) have no Salla session.
-        // Keep them as a clear notice instead of a misleading network error.
-        if (!inIframe() && !readUrlToken()) {
-          throw new BootstrapError(
-            "هذا التطبيق يعمل داخل لوحة تحكم سلة فقط. افتحه من صفحة التطبيقات.",
-            [
-              "Not embedded in Salla.",
-              `inIframe: ${inIframe()}`,
-              `url token: ${readUrlToken() ? "present" : "missing"}`,
-              `stored token: ${readStoredToken() ? "present" : "missing"}`,
-              `url: ${window.location.href.replace(/([?&]token=)[^&]+/, "$1<redacted>")}`,
-            ].join("\n"),
-          );
+        // Direct visits (no Salla iframe, no token) fall back to the demo
+        // merchant so the dashboard stays usable everywhere.
+        if (!inIframe() && !readUrlToken() && !readStoredToken()) {
+          setDemoMode(true);
+          setMerchantId(DEFAULT_MERCHANT_ID);
+          try { sessionStorage.setItem("sallati.merchant-id", String(DEFAULT_MERCHANT_ID)); } catch { /* */ }
+          setStoreUrl(await readStoreUrl(DEFAULT_MERCHANT_ID));
+          if (cancelled) return;
+          setStatus("ready");
+          return;
         }
 
         // Salla appends ?token=... to the iframe URL. Read it directly so identity
@@ -555,18 +557,20 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           <div className="ms-auto flex items-center gap-2">
             <span
               className={`hidden rounded-full px-2 py-1 text-[11px] font-medium sm:inline ${
-                ready && !localPreview
+                ready && !localPreview && !demoMode
                   ? "bg-[#1781ae]/10 text-[#1781ae] dark:bg-[#1781ae]/15 dark:text-[#a4f0ed]"
                   : "bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
               }`}
             >
               {localPreview
                 ? "معاينة محلية"
-                : ready
-                  ? "متصل"
-                  : slow
-                    ? "الاتصال بطيء"
-                    : "جارٍ الاتصال"}
+                : demoMode
+                  ? "معاينة"
+                  : ready
+                    ? "متصل"
+                    : slow
+                      ? "الاتصال بطيء"
+                      : "جارٍ الاتصال"}
             </span>
 
             {merchantId !== null && (
