@@ -6,7 +6,7 @@ import {
   DEFAULT_TOP_OFFERS_BAR,
   MAX_ANIMATION_SPEED,
   MIN_ANIMATION_SPEED,
-  TOP_OFFERS_BAR_FONTS,
+  TOP_OFFERS_BAR_FONT_OPTIONS,
   clampAnimationSpeed,
   normalizeTopOffersBar,
   type TopOffersBarConfig as Config,
@@ -22,9 +22,9 @@ import {
   ColorField,
   DangerButton,
   Field,
+  FontSelect,
   GhostButton,
   LinkButton,
-  Select,
   TextInput,
   ToggleRow,
   Wysiwyg,
@@ -181,15 +181,12 @@ export default function TopOffersBarConfig() {
           </div>
 
           <Field label="الخط" className="mt-5">
-            <Select
+            <FontSelect
               value={config.fontFamily}
-              onChange={(event) => update({ ...config, fontFamily: event.target.value })}
+              options={TOP_OFFERS_BAR_FONT_OPTIONS}
+              onChange={(fontFamily) => update({ ...config, fontFamily })}
               className="mt-1"
-            >
-              {TOP_OFFERS_BAR_FONTS.map((font) => (
-                <option key={font} value={font}>{font}</option>
-              ))}
-            </Select>
+            />
           </Field>
 
           <ColorField
