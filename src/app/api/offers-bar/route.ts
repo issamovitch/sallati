@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import { DEFAULT_TOP_OFFERS_BAR, clampAnimationSpeed } from "@/lib/top-offers-bar";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +17,16 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const merchantId = Number(searchParams.get("merchant_id"));
 
-  const empty = { enabled: false, message: "", color: "" };
+  const empty = {
+    enabled: false,
+    texts: [],
+    message: "",
+    color: "",
+    height: 0,
+    fontFamily: "",
+    fontSize: 0,
+    animationSpeed: 0,
+  };
 
   if (!Number.isFinite(merchantId) || merchantId <= 0) {
     return NextResponse.json(empty, { headers: CORS_HEADERS });
@@ -38,20 +48,39 @@ export async function GET(request: Request) {
     return NextResponse.json(empty, { headers: CORS_HEADERS });
   }
 
-  const s = (data.settings ?? {}) as { enabled?: boolean; message?: string; color?: string; height?: number; fontFamily?: string; fontSize?: number };
-  const enabled = s.enabled === true;
-  if (!enabled) {
-    return NextResponse.json({ enabled: false, message: "", color: "", height: 0, fontFamily: "", fontSize: 0 }, { headers: CORS_HEADERS });
+  const s = (data.settings ?? {}) as Partial<typeof DEFAULT_TOP_OFFERS_BAR> & {
+    message?: string;
+  };
+
+  const texts =
+    Array.isArray(s.texts) && s.texts.length
+      ? s.texts.map((t) => ({
+          message: typeof t.message === "string" ? t.message : "",
+          duration:
+            typeof t.duration === "number" && t.duration >= 1
+              ? t.duration
+              : DEFAULT_TOP_OFFERS_BAR.texts[0].duration,
+        }))
+      : typeof s.message === "string"
+        ? [{ message: s.message, duration: DEFAULT_TOP_OFFERS_BAR.texts[0].duration }]
+        : [];
+
+  if (s.enabled !== true) {
+    return NextResponse.json({ ...empty, height: 0, fontFamily: "", fontSize: 0 }, { headers: CORS_HEADERS });
   }
 
   return NextResponse.json(
     {
       enabled: true,
-      message: s.message ?? "",
-      color: s.color ?? "#000000",
-      height: s.height ?? 46,
-      fontFamily: s.fontFamily ?? "Cairo",
-      fontSize: s.fontSize ?? 16,
+      texts,
+      message: texts[0]?.message ?? "",
+      color: s.color ?? DEFAULT_TOP_OFFERS_BAR.color,
+      height: s.height ?? DEFAULT_TOP_OFFERS_BAR.height,
+      fontFamily: s.fontFamily ?? DEFAULT_TOP_OFFERS_BAR.fontFamily,
+      fontSize: s.fontSize ?? DEFAULT_TOP_OFFERS_BAR.fontSize,
+      animationSpeed: clampAnimationSpeed(
+        s.animationSpeed ?? DEFAULT_TOP_OFFERS_BAR.animationSpeed,
+      ),
     },
     { headers: CORS_HEADERS },
   );

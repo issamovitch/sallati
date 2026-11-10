@@ -37,3 +37,14 @@ body {
 a, button, [role="button"], [role="link"], summary, label[for] {
   cursor: pointer;
 }
+
+@keyframes sallati-preview-slide {
+  from {
+    transform: translateX(48px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

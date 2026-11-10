@@ -7,6 +7,7 @@ import { embedded } from "@salla.sa/embedded-sdk";
 import { moduleNumbers, orderedModules } from "@/lib/modules";
 import { normalizeStoreUrl } from "@/lib/store-link";
 import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
+import { Button, GhostButton, Modal, Spinner, TextInput } from "@/components/ui";
 
 type Status = "connecting" | "ready" | "error";
 
@@ -447,51 +448,37 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
 
   return (
     <div className="relative flex h-dvh overflow-hidden bg-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      {storePromptOpen && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="store-link-title"
-        >
-          <form
-            onSubmit={saveStoreLink}
-            className="w-full max-w-sm rounded-xl border border-black/10 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-zinc-900"
-          >
-            <h2 id="store-link-title" className="text-base font-semibold">
-              رابط متجرك
-            </h2>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-              لم نتمكن من اكتشاف الرابط تلقائيًا. أدخله مرة واحدة وسنحفظه.
-            </p>
-            <input
-              type="url"
-              inputMode="url"
-              dir="ltr"
-              autoFocus
-              value={storeInput}
-              onChange={(event) => setStoreInput(event.target.value)}
-              placeholder="https://demo.salla.sa"
-              className="mt-3 w-full rounded-lg border border-black/10 bg-white px-3 py-2 text-left text-sm outline-none focus:border-[#1781ae] dark:border-white/15 dark:bg-zinc-950"
-            />
-            <div className="mt-4 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setStorePromptOpen(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                className="btn-brand rounded-lg px-3 py-1.5 text-sm font-medium"
-              >
-                حفظ ومعاينة
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      <Modal
+        open={storePromptOpen}
+        onClose={() => setStorePromptOpen(false)}
+        title="رابط متجرك"
+        description="لم نتمكن من اكتشاف الرابط تلقائيًا. أدخله مرة واحدة وسنحفظه."
+      >
+        <form onSubmit={saveStoreLink}>
+          <TextInput
+            type="url"
+            inputMode="url"
+            dir="ltr"
+            autoFocus
+            value={storeInput}
+            onChange={(event) => setStoreInput(event.target.value)}
+            placeholder="https://demo.salla.sa"
+            className="mt-3 text-left"
+          />
+          <div className="mt-4 flex items-center justify-end gap-2">
+            <GhostButton
+              size="sm"
+              type="button"
+              onClick={() => setStorePromptOpen(false)}
+            >
+              إلغاء
+            </GhostButton>
+            <Button size="sm" type="submit">
+              حفظ ومعاينة
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {sidebarOpen && (
         <button
@@ -617,10 +604,9 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           ) : (
             <div className="grid h-full place-items-center p-6">
               <div className="text-center">
-                <span className="mx-auto block size-6 animate-spin rounded-full border-2 border-zinc-300 border-t-[#1781ae]" />
-                <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-                  {slow ? "الاتصال بسلة يستغرق وقتًا أطول…" : "جارٍ الاتصال بسلة…"}
-                </p>
+                <Spinner
+                  label={slow ? "الاتصال بسلة يستغرق وقتًا أطول…" : "جارٍ الاتصال بسلة…"}
+                />
                 {slow && (
                   <button
                     type="button"
