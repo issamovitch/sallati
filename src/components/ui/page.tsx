@@ -10,7 +10,7 @@ export default function Page({
   className?: string;
 }) {
   return (
-    <section className={`w-full px-10 pb-8 md:px-16 ${className}`}>
+    <section className={`w-full px-10 pt-5 pb-8 md:px-16 ${className}`}>
       <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
       {children}
     </section>

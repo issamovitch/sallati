@@ -627,7 +627,7 @@ function ModuleNav({ onNavigate }: { onNavigate: () => void }) {
                 }`}
               >
                 <span
-                  className={`size-2 shrink-0 rounded-full ${enabled ? dotOn : dotOff}`}
+                  className={`size-2.5 shrink-0 rounded-full ${enabled ? dotOn : dotOff}`}
                   title={enabled ? "مفعّل لهذا المتجر" : "غير مفعّل"}
                   aria-label={enabled ? "مفعّل" : "غير مفعّل"}
                 />
