@@ -1,3 +1,5 @@
+import { scopedKey } from "@/lib/settings";
+
 export type LuckWheelPrize = {
   id: string;
   /** Text shown on the wheel segment. */
@@ -195,9 +197,9 @@ export function normalizeLuckWheel(raw: unknown): LuckWheelConfig {
   };
 }
 
-export function readLuckWheel(): LuckWheelConfig {
+export function readLuckWheel(merchantId: number | null): LuckWheelConfig {
   try {
-    const raw = localStorage.getItem(LUCK_WHEEL_KEY);
+    const raw = localStorage.getItem(scopedKey(LUCK_WHEEL_KEY, merchantId));
     if (!raw) return DEFAULT_LUCK_WHEEL;
     return normalizeLuckWheel(JSON.parse(raw));
   } catch {
@@ -205,9 +207,9 @@ export function readLuckWheel(): LuckWheelConfig {
   }
 }
 
-export function writeLuckWheel(config: LuckWheelConfig) {
+export function writeLuckWheel(merchantId: number | null, config: LuckWheelConfig) {
   try {
-    localStorage.setItem(LUCK_WHEEL_KEY, JSON.stringify(config));
+    localStorage.setItem(scopedKey(LUCK_WHEEL_KEY, merchantId), JSON.stringify(config));
     window.dispatchEvent(new Event(LUCK_WHEEL_EVENT));
   } catch {
     /* storage unavailable */

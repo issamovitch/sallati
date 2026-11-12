@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
@@ -97,13 +97,13 @@ export default function TopOffersBarConfig() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setConfig(readTopOffersBar());
+      setConfig(readTopOffersBar(readMerchantId()));
       if (!isSupabaseConfigured()) return;
       const remote = await readModuleSettings<Config>(readMerchantId(), OFFERS_MODULE_NUM);
       if (cancelled || !remote) return;
       const merged = normalizeTopOffersBar(remote);
       setConfig(merged);
-      writeTopOffersBar(merged);
+      writeTopOffersBar(readMerchantId(), merged);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -131,12 +131,12 @@ export default function TopOffersBarConfig() {
   function save() {
     const next = normalizeTopOffersBar(config);
     setConfig(next);
-    writeTopOffersBar(next);
+    writeTopOffersBar(readMerchantId(), next);
     if (isSupabaseConfigured()) {
       void writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
     }
     refreshPreview();
-    show("تم الحفظ");
+    show("ØªÙ… Ø§Ù„Ø­ÙØ¸");
   }
 
   const showDuration = config.texts.length > 1;
@@ -144,17 +144,17 @@ export default function TopOffersBarConfig() {
   return (
     <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
       <div className="space-y-5">
-        <Card title="إعدادات الشريط">
+        <Card title="Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø´Ø±ÙŠØ·">
           <ToggleRow
-            title="تفعيل الشريط"
-            description="إظهار شريط العروض أعلى واجهة المتجر."
+            title="ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø´Ø±ÙŠØ·"
+            description="Ø¥Ø¸Ù‡Ø§Ø± Ø´Ø±ÙŠØ· Ø§Ù„Ø¹Ø±ÙˆØ¶ Ø£Ø¹Ù„Ù‰ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ù…ØªØ¬Ø±."
             checked={config.enabled}
             onChange={(enabled) => update({ ...config, enabled })}
-            label="تفعيل الشريط"
+            label="ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø´Ø±ÙŠØ·"
           />
 
           <div className="mt-5 grid grid-cols-2 gap-4">
-            <Field label="ارتفاع الشريط (px)">
+            <Field label="Ø§Ø±ØªÙØ§Ø¹ Ø§Ù„Ø´Ø±ÙŠØ· (px)">
               <TextInput
                 type="number"
                 min={24}
@@ -166,7 +166,7 @@ export default function TopOffersBarConfig() {
                 className="mt-1"
               />
             </Field>
-            <Field label="حجم الخط (px)">
+            <Field label="Ø­Ø¬Ù… Ø§Ù„Ø®Ø· (px)">
               <TextInput
                 type="number"
                 min={10}
@@ -180,7 +180,7 @@ export default function TopOffersBarConfig() {
             </Field>
           </div>
 
-          <Field label="الخط" className="mt-5">
+          <Field label="Ø§Ù„Ø®Ø·" className="mt-5">
             <FontSelect
               value={config.fontFamily}
               options={TOP_OFFERS_BAR_FONT_OPTIONS}
@@ -190,7 +190,7 @@ export default function TopOffersBarConfig() {
           </Field>
 
           <ColorField
-            label="لون الشريط"
+            label="Ù„ÙˆÙ† Ø§Ù„Ø´Ø±ÙŠØ·"
             value={config.color}
             onChange={(color) => update({ ...config, color })}
             pickerHeight={140}
@@ -198,22 +198,22 @@ export default function TopOffersBarConfig() {
 
           <div className="mt-5 flex items-center justify-end gap-3">
             <Button type="button" onClick={save}>
-              حفظ
+              Ø­ÙØ¸
             </Button>
           </div>
         </Card>
 
-        <Card title="النصوص">
+        <Card title="Ø§Ù„Ù†ØµÙˆØµ">
           <div className="space-y-4">
             {config.texts.map((text, index) => (
               <div key={index}>
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-base font-bold text-zinc-900 dark:text-white">
-                    نص {index + 1}
+                    Ù†Øµ {index + 1}
                   </span>
                   {index > 0 && (
                     <DangerButton type="button" onClick={() => removeText(index)}>
-                      حذف
+                      Ø­Ø°Ù
                     </DangerButton>
                   )}
                 </div>
@@ -229,7 +229,7 @@ export default function TopOffersBarConfig() {
 
           {showDuration && (
             <div className="mt-3 grid grid-cols-2 gap-4">
-              <Field label="المدة (ثانية)">
+              <Field label="Ø§Ù„Ù…Ø¯Ø© (Ø«Ø§Ù†ÙŠØ©)">
                 <TextInput
                   type="number"
                   min={1}
@@ -242,7 +242,7 @@ export default function TopOffersBarConfig() {
                   className="mt-1 w-24 px-2 py-1 text-sm"
                 />
               </Field>
-              <Field label="سرعة الحركة (ms)">
+              <Field label="Ø³Ø±Ø¹Ø© Ø§Ù„Ø­Ø±ÙƒØ© (ms)">
                 <TextInput
                   type="number"
                   min={MIN_ANIMATION_SPEED}
@@ -263,13 +263,13 @@ export default function TopOffersBarConfig() {
 
           {config.texts.length < MAX_TEXTS && (
             <LinkButton type="button" onClick={addText} className="mt-3">
-              + إضافة نص
+              + Ø¥Ø¶Ø§ÙØ© Ù†Øµ
             </LinkButton>
           )}
 
           <div className="mt-5 flex items-center justify-end gap-3">
             <Button type="button" onClick={save}>
-              حفظ
+              Ø­ÙØ¸
             </Button>
           </div>
         </Card>
@@ -277,14 +277,14 @@ export default function TopOffersBarConfig() {
 
       <div className="space-y-5">
         <Card
-          title="معاينة"
+          title="Ù…Ø¹Ø§ÙŠÙ†Ø©"
           action={
             <GhostButton
               type="button"
               size="sm"
               onClick={refreshPreview}
-              aria-label="تحديث المعاينة"
-              title="تحديث المعاينة"
+              aria-label="ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"
+              title="ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"
               className="!px-2 !py-1"
             >
               <HiArrowPath className="size-4" />
@@ -294,13 +294,13 @@ export default function TopOffersBarConfig() {
           <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
             {!config.enabled ? (
               <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                الشريط معطّل
+                Ø§Ù„Ø´Ø±ÙŠØ· Ù…Ø¹Ø·Ù‘Ù„
               </div>
             ) : snippet ? (
               <iframe
                 key={previewKey}
                 ref={previewRef}
-                title="معاينة شريط العروض"
+                title="Ù…Ø¹Ø§ÙŠÙ†Ø© Ø´Ø±ÙŠØ· Ø§Ù„Ø¹Ø±ÙˆØ¶"
                 srcDoc={previewDoc}
                 onLoad={pushPreview}
                 style={{
@@ -312,7 +312,7 @@ export default function TopOffersBarConfig() {
               />
             ) : (
               <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                جارٍ التحميل…
+                Ø¬Ø§Ø±Ù Ø§Ù„ØªØ­Ù…ÙŠÙ„â€¦
               </div>
             )}
           </div>

@@ -1,3 +1,5 @@
+import { scopedKey } from "@/lib/settings";
+
 export type TopOffersBarText = {
   message: string;
   duration: number; // seconds
@@ -97,9 +99,9 @@ export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
   };
 }
 
-export function readTopOffersBar(): TopOffersBarConfig {
+export function readTopOffersBar(merchantId: number | null): TopOffersBarConfig {
   try {
-    const raw = localStorage.getItem(TOP_OFFERS_BAR_KEY);
+    const raw = localStorage.getItem(scopedKey(TOP_OFFERS_BAR_KEY, merchantId));
     if (!raw) return DEFAULT_TOP_OFFERS_BAR;
     return normalizeTopOffersBar(JSON.parse(raw));
   } catch {
@@ -107,9 +109,12 @@ export function readTopOffersBar(): TopOffersBarConfig {
   }
 }
 
-export function writeTopOffersBar(config: TopOffersBarConfig) {
+export function writeTopOffersBar(merchantId: number | null, config: TopOffersBarConfig) {
   try {
-    localStorage.setItem(TOP_OFFERS_BAR_KEY, JSON.stringify(config));
+    localStorage.setItem(
+      scopedKey(TOP_OFFERS_BAR_KEY, merchantId),
+      JSON.stringify(config),
+    );
     window.dispatchEvent(new Event(TOP_OFFERS_BAR_EVENT));
   } catch {
     /* storage unavailable */
