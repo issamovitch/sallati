@@ -98,8 +98,7 @@ export function isEnabled(settings: unknown): boolean {
 /**
  * Enabled state for every module that has a settings row for this merchant.
  * Modules without a row are simply absent, which the sidebar renders as off.
- */
-export async function readModuleStates(
+ */export async function readModuleStates(
   merchantId: number | null,
 ): Promise<Record<number, boolean>> {
   const supabase = client();
@@ -117,4 +116,40 @@ export async function readModuleStates(
     states[row.module_num] = isEnabled(row.settings);
   }
   return states;
+}
+
+/**
+ * Live updates for one module (`moduleNum`) or the whole merchant (null).
+ * Requires `public.settings` in the `supabase_realtime` publication.
+ */
+export function subscribeModuleSettings(
+  merchantId: number | null,
+  moduleNum: number | null,
+  onChange: (moduleNum: number, settings: unknown) => void,
+): () => void {
+  const supabase = client();
+  if (!supabase || merchantId === null) return () => {};
+
+  const channel = supabase
+    .channel(`settings:${merchantId}:${moduleNum ?? "all"}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: SETTINGS_TABLE,
+        filter: `merchant_id=eq.${merchantId}`,
+      },
+      (payload) => {
+        const row = payload.new as { module_num?: number; settings?: unknown } | null;
+        if (!row?.module_num) return;
+        if (moduleNum !== null && row.module_num !== moduleNum) return;
+        onChange(row.module_num, row.settings);
+      },
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
 }

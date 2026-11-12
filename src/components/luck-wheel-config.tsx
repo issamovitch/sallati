@@ -19,7 +19,12 @@ import {
 import { FONT_OPTIONS } from "@/lib/fonts";
 import StoreLinkCard from "@/components/store-link-card";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { readMerchantId, readModuleSettings, writeModuleSettings } from "@/lib/settings";
+import {
+  readMerchantId,
+  readModuleSettings,
+  subscribeModuleSettings,
+  writeModuleSettings,
+} from "@/lib/settings";
 import { moduleNumbers } from "@/lib/modules";
 import {
   Button,
@@ -67,6 +72,8 @@ export default function LuckWheelConfig() {
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
+  const dirty = useRef(false);
+  const seq = useRef(0);
   const { show } = useToast();
 
   const previewDoc = useMemo(() => (snippet ? buildPreviewDoc(snippet) : ""), [snippet]);
@@ -105,13 +112,21 @@ export default function LuckWheelConfig() {
       if (!isSupabaseConfigured()) return;
       const remote = await readModuleSettings<Config>(readMerchantId(), LUCK_WHEEL_MODULE_NUM);
       if (cancelled || !remote) return;
-      const merged = normalizeLuckWheel(remote);
-      setConfig(merged);
+      setConfig(normalizeLuckWheel(remote));
     })();
     return () => { cancelled = true; };
   }, []);
 
+  // Live updates from other tabs/devices; unsaved edits always win.
+  useEffect(() => {
+    return subscribeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, (_num, settings) => {
+      if (dirty.current) return;
+      setConfig(normalizeLuckWheel(settings));
+    });
+  }, []);
+
   function update(next: Config) {
+    dirty.current = true;
     setConfig(next);
   }
 
@@ -130,7 +145,7 @@ export default function LuckWheelConfig() {
       prizes: [
         ...config.prizes,
         {
-          id: `prize-${Date.now()}`,
+          id: `prize-${config.prizes.length}-${(seq.current += 1)}`,
           label: "",
           weight: 10,
           couponCode: "",
@@ -145,14 +160,20 @@ export default function LuckWheelConfig() {
     update({ ...config, prizes: config.prizes.filter((_, i) => i !== index) });
   }
 
-  function save() {
+  async function save() {
     const next = normalizeLuckWheel(config);
     setConfig(next);
-    if (isSupabaseConfigured()) {
-      void writeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, next);
-    }
+    dirty.current = false;
     refreshPreview();
-    show("ØªÙ… Ø§Ù„Ø­ÙØ¸");
+    if (isSupabaseConfigured()) {
+      const ok = await writeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, next);
+      if (!ok) {
+        dirty.current = true;
+        show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
+        return;
+      }
+    }
+    show("تم الحفظ");
   }
 
   return (
@@ -160,16 +181,16 @@ export default function LuckWheelConfig() {
       <div className="space-y-5">
         <StoreLinkCard />
 
-        <Card title="Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¹Ø¬Ù„Ø©">
+        <Card title="إعدادات العجلة">
           <ToggleRow
-            title="ØªÙØ¹ÙŠÙ„ Ø¹Ø¬Ù„Ø© Ø§Ù„Ø­Ø¸"
-            description="Ø¥Ø¸Ù‡Ø§Ø± Ù†Ø§ÙØ°Ø© Ø§Ù„Ø¹Ø¬Ù„Ø© ÙÙŠ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ù…ØªØ¬Ø±."
+            title="تفعيل عجلة الحظ"
+            description="إظهار نافذة العجلة في واجهة المتجر."
             checked={config.enabled}
             onChange={(enabled) => update({ ...config, enabled })}
-            label="ØªÙØ¹ÙŠÙ„ Ø¹Ø¬Ù„Ø© Ø§Ù„Ø­Ø¸"
+            label="تفعيل عجلة الحظ"
           />
 
-          <Field label="Ø§Ù„Ø¹Ù†ÙˆØ§Ù†" className="mt-5">
+          <Field label="العنوان" className="mt-5">
             <TextInput
               value={config.headline}
               onChange={(event) => update({ ...config, headline: event.target.value })}
@@ -177,7 +198,7 @@ export default function LuckWheelConfig() {
             />
           </Field>
 
-          <Field label="Ø§Ù„ÙˆØµÙ" className="mt-4">
+          <Field label="الوصف" className="mt-4">
             <TextInput
               value={config.description}
               onChange={(event) => update({ ...config, description: event.target.value })}
@@ -186,14 +207,14 @@ export default function LuckWheelConfig() {
           </Field>
 
           <div className="mt-4 grid grid-cols-2 gap-4">
-            <Field label="Ù†Øµ Ø²Ø± Ø§Ù„Ø¹Ø¬Ù„Ø©">
+            <Field label="نص زر العجلة">
               <TextInput
                 value={config.buttonText}
                 onChange={(event) => update({ ...config, buttonText: event.target.value })}
                 className="mt-1"
               />
             </Field>
-            <Field label="Ù…Ø¯Ø© Ø§Ù„Ø¯ÙˆØ±Ø§Ù† (ms)">
+            <Field label="مدة الدوران (ms)">
               <TextInput
                 type="number"
                 min={MIN_SPIN_DURATION}
@@ -211,7 +232,7 @@ export default function LuckWheelConfig() {
             </Field>
           </div>
 
-          <Field label="Ø±Ø³Ø§Ù„Ø© Ø§Ù„ÙÙˆØ²" className="mt-4">
+          <Field label="رسالة الفوز" className="mt-4">
             <TextInput
               value={config.successText}
               onChange={(event) => update({ ...config, successText: event.target.value })}
@@ -219,7 +240,7 @@ export default function LuckWheelConfig() {
             />
           </Field>
 
-          <Field label="Ø§Ù„Ø®Ø·" className="mt-5">
+          <Field label="الخط" className="mt-5">
             <FontSelect
               value={config.fontFamily}
               options={FONT_OPTIONS}
@@ -229,7 +250,7 @@ export default function LuckWheelConfig() {
           </Field>
 
           <ColorField
-            label="Ù„ÙˆÙ† Ø§Ù„ØªÙ…ÙŠÙŠØ²"
+            label="لون التمييز"
             value={config.accentColor}
             onChange={(accentColor) => update({ ...config, accentColor })}
             pickerHeight={140}
@@ -237,15 +258,15 @@ export default function LuckWheelConfig() {
 
           <div className="mt-5 flex items-center justify-end">
             <Button type="button" onClick={save}>
-              Ø­ÙØ¸
+              حفظ
             </Button>
           </div>
         </Card>
 
-        <Card title="Ø§Ù„Ø¬ÙˆØ§Ø¦Ø²">
+        <Card title="الجوائز">
           <Hint>
-            Ø§Ø­ØªÙ…Ø§Ù„ÙŠØ© ÙƒÙ„ Ø¬Ø§Ø¦Ø²Ø© ØªÙØ­Ø³Ø¨ Ù…Ù† Ù…Ø¬Ù…ÙˆØ¹ Ø§Ù„Ø£ÙˆØ²Ø§Ù†. Ø§ØªØ±Ùƒ ÙƒÙˆØ¯ Ø§Ù„ÙƒÙˆØ¨ÙˆÙ† ÙØ§Ø±ØºÙ‹Ø§ Ù„Ø¬Ø§Ø¦Ø²Ø©
-            Â«Ø­Ø¸ Ø£ÙˆÙØ±Â» Ø¨Ø¯ÙˆÙ† ÙƒÙˆØ¨ÙˆÙ†.
+            احتمالية كل جائزة تُحسب من مجموع الأوزان. اترك كود الكوبون فارغًا لجائزة
+            «حظ أوفر» بدون كوبون.
           </Hint>
 
           <div className="mt-4 space-y-4">
@@ -259,7 +280,7 @@ export default function LuckWheelConfig() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-bold text-zinc-900 dark:text-white">
-                      Ø§Ù„Ø¬Ø§Ø¦Ø²Ø© {index + 1}
+                      الجائزة {index + 1}
                     </span>
                     <DangerButton
                       type="button"
@@ -268,20 +289,20 @@ export default function LuckWheelConfig() {
                       className="inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <HiTrash className="size-3.5" />
-                      Ø­Ø°Ù
+                      حذف
                     </DangerButton>
                   </div>
 
                   <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <Field label="Ø§Ø³Ù… Ø§Ù„Ø¬Ø§Ø¦Ø²Ø©">
+                    <Field label="اسم الجائزة">
                       <TextInput
                         value={prize.label}
                         onChange={(event) => updatePrize(index, { label: event.target.value })}
-                        placeholder="Ø®ØµÙ… 10%"
+                        placeholder="خصم 10%"
                         className="mt-1"
                       />
                     </Field>
-                    <Field label="ÙƒÙˆØ¯ Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†">
+                    <Field label="كود الكوبون">
                       <TextInput
                         dir="ltr"
                         value={prize.couponCode}
@@ -295,7 +316,7 @@ export default function LuckWheelConfig() {
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-                    <Field label="Ø§Ù„ÙˆØ²Ù†">
+                    <Field label="الوزن">
                       <TextInput
                         type="number"
                         min={1}
@@ -310,7 +331,7 @@ export default function LuckWheelConfig() {
 
                     <div>
                       <span className="text-base font-bold text-zinc-900 dark:text-white">
-                        Ø§Ù„Ù„ÙˆÙ†
+                        اللون
                       </span>
                       <ColorInput
                         value={prize.color}
@@ -320,8 +341,8 @@ export default function LuckWheelConfig() {
                     </div>
 
                     <Hint className="pb-2">
-                      Ø§Ù„Ø§Ø­ØªÙ…Ø§Ù„ÙŠØ©: {chance}% Â·{" "}
-                      {prize.couponCode.trim() ? "ÙƒÙˆØ¨ÙˆÙ†" : "Ø¨Ø¯ÙˆÙ† ÙƒÙˆØ¨ÙˆÙ†"}
+                      الاحتمالية: {chance}% ·{" "}
+                      {prize.couponCode.trim() ? "كوبون" : "بدون كوبون"}
                     </Hint>
                   </div>
                 </div>
@@ -336,28 +357,28 @@ export default function LuckWheelConfig() {
               className="mt-3 inline-flex items-center gap-1"
             >
               <HiPlus className="size-3.5" />
-              Ø¥Ø¶Ø§ÙØ© Ø¬Ø§Ø¦Ø²Ø©
+              إضافة جائزة
             </LinkButton>
           )}
 
           <div className="mt-5 flex items-center justify-end">
             <Button type="button" onClick={save}>
-              Ø­ÙØ¸
+              حفظ
             </Button>
           </div>
         </Card>
 
-        <Card title="Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¸Ù‡ÙˆØ± ÙˆØ§Ù„Ø¬Ù…Ø¹">
+        <Card title="طريقة الظهور والجمع">
           <div className="space-y-4">
             <div>
               <ToggleRow
-                title="Ø§Ù„Ø¸Ù‡ÙˆØ± Ø¨Ø¹Ø¯ ØªØ£Ø®ÙŠØ±"
-                description="ÙØªØ­ Ø§Ù„Ø¹Ø¬Ù„Ø© ØªÙ„Ù‚Ø§Ø¦ÙŠÙ‹Ø§ Ø¨Ø¹Ø¯ Ù…Ø¯Ø© Ù…Ù† ØªØ­Ù…ÙŠÙ„ Ø§Ù„ØµÙØ­Ø©."
+                title="الظهور بعد تأخير"
+                description="فتح العجلة تلقائيًا بعد مدة من تحميل الصفحة."
                 checked={config.openOnDelay}
                 onChange={(openOnDelay) => update({ ...config, openOnDelay })}
-                label="Ø§Ù„Ø¸Ù‡ÙˆØ± Ø¨Ø¹Ø¯ ØªØ£Ø®ÙŠØ±"
+                label="الظهور بعد تأخير"
               />
-              <Field label="Ø¨Ø¹Ø¯ (Ø«Ø§Ù†ÙŠØ©)" className="mt-3">
+              <Field label="بعد (ثانية)" className="mt-3">
                 <TextInput
                   type="number"
                   min={MIN_DELAY_SECONDS}
@@ -376,39 +397,39 @@ export default function LuckWheelConfig() {
             </div>
 
             <ToggleRow
-              title="Ø¹Ù†Ø¯ Ù…Ø­Ø§ÙˆÙ„Ø© Ø§Ù„Ø®Ø±ÙˆØ¬"
-              description="ÙØªØ­ Ø§Ù„Ø¹Ø¬Ù„Ø© Ø¹Ù†Ø¯Ù…Ø§ ÙŠØ®Ø±Ø¬ Ù…Ø¤Ø´Ø± Ø§Ù„Ø²Ø§Ø¦Ø± Ù…Ù† Ø£Ø¹Ù„Ù‰ Ø§Ù„ØµÙØ­Ø©."
+              title="عند محاولة الخروج"
+              description="فتح العجلة عندما يخرج مؤشر الزائر من أعلى الصفحة."
               checked={config.openOnExit}
               onChange={(openOnExit) => update({ ...config, openOnExit })}
-              label="Ø¹Ù†Ø¯ Ù…Ø­Ø§ÙˆÙ„Ø© Ø§Ù„Ø®Ø±ÙˆØ¬"
+              label="عند محاولة الخروج"
             />
 
             <ToggleRow
-              title="Ø²Ø± Ø¹Ø§Ø¦Ù… ÙÙŠ Ø§Ù„Ù…ØªØ¬Ø±"
-              description="Ø²Ø± ØµØºÙŠØ± Ø£Ø³ÙÙ„ Ø§Ù„ØµÙØ­Ø© ÙŠÙØªØ­ Ø§Ù„Ø¹Ø¬Ù„Ø© ÙÙŠ Ø£ÙŠ ÙˆÙ‚Øª."
+              title="زر عائم في المتجر"
+              description="زر صغير أسفل الصفحة يفتح العجلة في أي وقت."
               checked={config.openOnButton}
               onChange={(openOnButton) => update({ ...config, openOnButton })}
-              label="Ø²Ø± Ø¹Ø§Ø¦Ù… ÙÙŠ Ø§Ù„Ù…ØªØ¬Ø±"
+              label="زر عائم في المتجر"
             />
 
             <ToggleRow
-              title="Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© Ù„ÙƒÙ„ Ø²Ø§Ø¦Ø±"
-              description="Ù„Ø§ ÙŠØ¸Ù‡Ø± Ø§Ù„Ø·Ù„Ø¨ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰ Ø¨Ø¹Ø¯ Ø£Ù† ÙŠØ¯ÙˆØ± Ø§Ù„Ø²Ø§Ø¦Ø± ÙˆÙŠØ­ØµÙ„ Ø¹Ù„Ù‰ Ø¬Ø§Ø¦Ø²ØªÙ‡."
+              title="مرة واحدة لكل زائر"
+              description="لا يظهر الطلب مرة أخرى بعد أن يدور الزائر ويحصل على جائزته."
               checked={config.oncePerVisitor}
               onChange={(oncePerVisitor) => update({ ...config, oncePerVisitor })}
-              label="Ù…Ø±Ø© ÙˆØ§Ø­Ø¯Ø© Ù„ÙƒÙ„ Ø²Ø§Ø¦Ø±"
+              label="مرة واحدة لكل زائر"
             />
 
             <div>
               <ToggleRow
-                title="Ø·Ù„Ø¨ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ"
-                description="Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„Ø¯ÙˆØ±Ø§Ù† Ù‚Ø¨Ù„ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ØŒ ÙˆÙŠÙØ­ÙØ¸ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ù…Ø¹ Ø§Ù„Ø¬Ø§Ø¦Ø²Ø©."
+                title="طلب البريد الإلكتروني"
+                description="لا يمكن الدوران قبل إدخال البريد، ويُحفظ البريد مع الجائزة."
                 checked={config.requireEmail}
                 onChange={(requireEmail) => update({ ...config, requireEmail })}
-                label="Ø·Ù„Ø¨ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ"
+                label="طلب البريد الإلكتروني"
               />
               {config.requireEmail && (
-                <Field label="Ù†Øµ Ø­Ù‚Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯" className="mt-3">
+                <Field label="نص حقل البريد" className="mt-3">
                   <TextInput
                     value={config.emailPlaceholder}
                     onChange={(event) =>
@@ -423,7 +444,7 @@ export default function LuckWheelConfig() {
 
           <div className="mt-5 flex items-center justify-end">
             <Button type="button" onClick={save}>
-              Ø­ÙØ¸
+              حفظ
             </Button>
           </div>
         </Card>
@@ -431,14 +452,14 @@ export default function LuckWheelConfig() {
 
       <div className="space-y-5">
         <Card
-          title="Ù…Ø¹Ø§ÙŠÙ†Ø©"
+          title="معاينة"
           action={
             <GhostButton
               type="button"
               size="sm"
               onClick={refreshPreview}
-              aria-label="ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"
-              title="ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"
+              aria-label="تحديث المعاينة"
+              title="تحديث المعاينة"
               className="!px-2 !py-1"
             >
               <HiArrowPath className="size-4" />
@@ -448,33 +469,33 @@ export default function LuckWheelConfig() {
           <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
             {!config.enabled ? (
               <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                Ø¹Ø¬Ù„Ø© Ø§Ù„Ø­Ø¸ Ù…Ø¹Ø·Ù‘Ù„Ø©
+                عجلة الحظ معطّلة
               </div>
             ) : snippet ? (
               <iframe
                 key={previewKey}
                 ref={previewRef}
-                title="Ù…Ø¹Ø§ÙŠÙ†Ø© Ø¹Ø¬Ù„Ø© Ø§Ù„Ø­Ø¸"
+                title="معاينة عجلة الحظ"
                 srcDoc={previewDoc}
                 onLoad={pushPreview}
                 style={{ height: 640, width: "100%", border: 0, display: "block" }}
               />
             ) : (
               <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                Ø¬Ø§Ø±Ù Ø§Ù„ØªØ­Ù…ÙŠÙ„â€¦
+                جارٍ التحميل…
               </div>
             )}
           </div>
         </Card>
 
-        <Card title="ÙƒÙŠÙ ØªØ¹Ù…Ù„ Ø§Ù„Ø¬ÙˆØ§Ø¦Ø²ØŸ">
+        <Card title="كيف تعمل الجوائز؟">
           <Hint className="text-sm leading-7">
-            Ø§Ù„Ø¬ÙˆØ§Ø¦Ø² Ø§Ù„Ø­Ø§Ù„ÙŠØ© Ø¨ÙƒÙˆØ¨ÙˆÙ†Ø§Øª ÙŠØ¯ÙˆÙŠØ©: Ø£Ù†Øª ØªÙ†Ø´Ø¦ Ø§Ù„ÙƒÙˆØ¨ÙˆÙ† ÙÙŠ Ø³Ù„Ø© ÙˆØªÙƒØªØ¨ ÙƒÙˆØ¯Ù‡ Ù‡Ù†Ø§ØŒ Ø«Ù…
-            ÙŠØ¸Ù‡Ø± Ù„Ù„Ø²Ø§Ø¦Ø± Ø¹Ù†Ø¯ Ø§Ù„ÙÙˆØ². Ù‡Ø°Ø§ ÙŠØ¹Ù…Ù„ ÙÙŠ Ø£ÙŠ Ù…ØªØ¬Ø± Ø¯ÙˆÙ† Ø£ÙŠ Ø±Ø¨Ø· Ø¥Ø¶Ø§ÙÙŠ.
+            الجوائز الحالية بكوبونات يدوية: أنت تنشئ الكوبون في سلة وتكتب كوده هنا، ثم
+            يظهر للزائر عند الفوز. هذا يعمل في أي متجر دون أي ربط إضافي.
           </Hint>
           <Hint className="mt-2 text-sm leading-7">
-            Ø§Ù„ØªÙˆÙ„ÙŠØ¯ Ø§Ù„ØªÙ„Ù‚Ø§Ø¦ÙŠ Ù„ÙƒÙˆØ¨ÙˆÙ† Ø¬Ø¯ÙŠØ¯ Ù„ÙƒÙ„ Ø²Ø§Ø¦Ø± ÙŠØ­ØªØ§Ø¬ Ø±Ø¨Ø· OAuth Ø¨Ù…ØªØ¬Ø± ÙƒÙ„ ØªØ§Ø¬Ø±
-            (ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„ÙƒÙˆØ¨ÙˆÙ†Ø§Øª)ØŒ ÙˆÙ‡Ùˆ ØºÙŠØ± Ù…ÙØ¹Ù‘Ù„ Ø¨Ø¹Ø¯.
+            التوليد التلقائي لكوبون جديد لكل زائر يحتاج ربط OAuth بمتجر كل تاجر
+            (صلاحية الكوبونات)، وهو غير مفعّل بعد.
           </Hint>
         </Card>
       </div>

@@ -12,7 +12,12 @@ import {
   type TopOffersBarConfig as Config,
 } from "@/lib/top-offers-bar";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { readModuleSettings, writeModuleSettings, readMerchantId } from "@/lib/settings";
+import {
+  readMerchantId,
+  readModuleSettings,
+  subscribeModuleSettings,
+  writeModuleSettings,
+} from "@/lib/settings";
 import { moduleNumbers } from "@/lib/modules";
 import {
   Button,
@@ -60,6 +65,7 @@ export default function TopOffersBarConfig() {
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
+  const dirty = useRef(false);
   const { show } = useToast();
 
   const previewDoc = useMemo(() => (snippet ? buildPreviewDoc(snippet) : ""), [snippet]);
@@ -98,13 +104,21 @@ export default function TopOffersBarConfig() {
       if (!isSupabaseConfigured()) return;
       const remote = await readModuleSettings<Config>(readMerchantId(), OFFERS_MODULE_NUM);
       if (cancelled || !remote) return;
-      const merged = normalizeTopOffersBar(remote);
-      setConfig(merged);
+      setConfig(normalizeTopOffersBar(remote));
     })();
     return () => { cancelled = true; };
   }, []);
 
+  // Live updates from other tabs/devices; unsaved edits always win.
+  useEffect(() => {
+    return subscribeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, (_num, settings) => {
+      if (dirty.current) return;
+      setConfig(normalizeTopOffersBar(settings));
+    });
+  }, []);
+
   function update(next: Config) {
+    dirty.current = true;
     setConfig(next);
   }
 
@@ -124,14 +138,20 @@ export default function TopOffersBarConfig() {
     update({ ...config, texts: config.texts.filter((_, i) => i !== index) });
   }
 
-  function save() {
+  async function save() {
     const next = normalizeTopOffersBar(config);
     setConfig(next);
-    if (isSupabaseConfigured()) {
-      void writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
-    }
+    dirty.current = false;
     refreshPreview();
-    show("ØªÙ… Ø§Ù„Ø­ÙØ¸");
+    if (isSupabaseConfigured()) {
+      const ok = await writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
+      if (!ok) {
+        dirty.current = true;
+        show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
+        return;
+      }
+    }
+    show("تم الحفظ");
   }
 
   const showDuration = config.texts.length > 1;
@@ -139,17 +159,17 @@ export default function TopOffersBarConfig() {
   return (
     <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
       <div className="space-y-5">
-        <Card title="Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø´Ø±ÙŠØ·">
+        <Card title="إعدادات الشريط">
           <ToggleRow
-            title="ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø´Ø±ÙŠØ·"
-            description="Ø¥Ø¸Ù‡Ø§Ø± Ø´Ø±ÙŠØ· Ø§Ù„Ø¹Ø±ÙˆØ¶ Ø£Ø¹Ù„Ù‰ ÙˆØ§Ø¬Ù‡Ø© Ø§Ù„Ù…ØªØ¬Ø±."
+            title="تفعيل الشريط"
+            description="إظهار شريط العروض أعلى واجهة المتجر."
             checked={config.enabled}
             onChange={(enabled) => update({ ...config, enabled })}
-            label="ØªÙØ¹ÙŠÙ„ Ø§Ù„Ø´Ø±ÙŠØ·"
+            label="تفعيل الشريط"
           />
 
           <div className="mt-5 grid grid-cols-2 gap-4">
-            <Field label="Ø§Ø±ØªÙØ§Ø¹ Ø§Ù„Ø´Ø±ÙŠØ· (px)">
+            <Field label="ارتفاع الشريط (px)">
               <TextInput
                 type="number"
                 min={24}
@@ -161,7 +181,7 @@ export default function TopOffersBarConfig() {
                 className="mt-1"
               />
             </Field>
-            <Field label="Ø­Ø¬Ù… Ø§Ù„Ø®Ø· (px)">
+            <Field label="حجم الخط (px)">
               <TextInput
                 type="number"
                 min={10}
@@ -175,7 +195,7 @@ export default function TopOffersBarConfig() {
             </Field>
           </div>
 
-          <Field label="Ø§Ù„Ø®Ø·" className="mt-5">
+          <Field label="الخط" className="mt-5">
             <FontSelect
               value={config.fontFamily}
               options={TOP_OFFERS_BAR_FONT_OPTIONS}
@@ -185,7 +205,7 @@ export default function TopOffersBarConfig() {
           </Field>
 
           <ColorField
-            label="Ù„ÙˆÙ† Ø§Ù„Ø´Ø±ÙŠØ·"
+            label="لون الشريط"
             value={config.color}
             onChange={(color) => update({ ...config, color })}
             pickerHeight={140}
@@ -193,22 +213,22 @@ export default function TopOffersBarConfig() {
 
           <div className="mt-5 flex items-center justify-end gap-3">
             <Button type="button" onClick={save}>
-              Ø­ÙØ¸
+              حفظ
             </Button>
           </div>
         </Card>
 
-        <Card title="Ø§Ù„Ù†ØµÙˆØµ">
+        <Card title="النصوص">
           <div className="space-y-4">
             {config.texts.map((text, index) => (
               <div key={index}>
                 <div className="mb-1 flex items-center justify-between">
                   <span className="text-base font-bold text-zinc-900 dark:text-white">
-                    Ù†Øµ {index + 1}
+                    نص {index + 1}
                   </span>
                   {index > 0 && (
                     <DangerButton type="button" onClick={() => removeText(index)}>
-                      Ø­Ø°Ù
+                      حذف
                     </DangerButton>
                   )}
                 </div>
@@ -224,7 +244,7 @@ export default function TopOffersBarConfig() {
 
           {showDuration && (
             <div className="mt-3 grid grid-cols-2 gap-4">
-              <Field label="Ø§Ù„Ù…Ø¯Ø© (Ø«Ø§Ù†ÙŠØ©)">
+              <Field label="المدة (ثانية)">
                 <TextInput
                   type="number"
                   min={1}
@@ -237,7 +257,7 @@ export default function TopOffersBarConfig() {
                   className="mt-1 w-24 px-2 py-1 text-sm"
                 />
               </Field>
-              <Field label="Ø³Ø±Ø¹Ø© Ø§Ù„Ø­Ø±ÙƒØ© (ms)">
+              <Field label="سرعة الحركة (ms)">
                 <TextInput
                   type="number"
                   min={MIN_ANIMATION_SPEED}
@@ -258,13 +278,13 @@ export default function TopOffersBarConfig() {
 
           {config.texts.length < MAX_TEXTS && (
             <LinkButton type="button" onClick={addText} className="mt-3">
-              + Ø¥Ø¶Ø§ÙØ© Ù†Øµ
+              + إضافة نص
             </LinkButton>
           )}
 
           <div className="mt-5 flex items-center justify-end gap-3">
             <Button type="button" onClick={save}>
-              Ø­ÙØ¸
+              حفظ
             </Button>
           </div>
         </Card>
@@ -272,14 +292,14 @@ export default function TopOffersBarConfig() {
 
       <div className="space-y-5">
         <Card
-          title="Ù…Ø¹Ø§ÙŠÙ†Ø©"
+          title="معاينة"
           action={
             <GhostButton
               type="button"
               size="sm"
               onClick={refreshPreview}
-              aria-label="ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"
-              title="ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø¹Ø§ÙŠÙ†Ø©"
+              aria-label="تحديث المعاينة"
+              title="تحديث المعاينة"
               className="!px-2 !py-1"
             >
               <HiArrowPath className="size-4" />
@@ -289,13 +309,13 @@ export default function TopOffersBarConfig() {
           <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
             {!config.enabled ? (
               <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                Ø§Ù„Ø´Ø±ÙŠØ· Ù…Ø¹Ø·Ù‘Ù„
+                الشريط معطّل
               </div>
             ) : snippet ? (
               <iframe
                 key={previewKey}
                 ref={previewRef}
-                title="Ù…Ø¹Ø§ÙŠÙ†Ø© Ø´Ø±ÙŠØ· Ø§Ù„Ø¹Ø±ÙˆØ¶"
+                title="معاينة شريط العروض"
                 srcDoc={previewDoc}
                 onLoad={pushPreview}
                 style={{
@@ -307,7 +327,7 @@ export default function TopOffersBarConfig() {
               />
             ) : (
               <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                Ø¬Ø§Ø±Ù Ø§Ù„ØªØ­Ù…ÙŠÙ„â€¦
+                جارٍ التحميل…
               </div>
             )}
           </div>

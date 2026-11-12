@@ -24,7 +24,7 @@ export function clampAnimationSpeed(value: number): number {
 
 export const DEFAULT_TOP_OFFERS_BAR: TopOffersBarConfig = {
   enabled: true,
-  texts: [{ message: "Ø´Ø­Ù† Ù…Ø¬Ø§Ù†ÙŠ Ù„Ù„Ø·Ù„Ø¨Ø§Øª ÙÙˆÙ‚ 200 Ø±.Ø³", duration: 5 }],
+  texts: [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }],
   color: "#000000",
   height: 46,
   fontFamily: "Cairo",
@@ -59,7 +59,7 @@ function normalizeTexts(raw: unknown): TopOffersBarText[] {
     const m = (raw as { message?: unknown }).message;
     if (typeof m === "string") return [{ message: m, duration: 5 }];
   }
-  return [{ message: "Ø´Ø­Ù† Ù…Ø¬Ø§Ù†ÙŠ Ù„Ù„Ø·Ù„Ø¨Ø§Øª ÙÙˆÙ‚ 200 Ø±.Ø³", duration: 5 }];
+  return [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }];
 }
 
 export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
@@ -93,3 +93,4 @@ export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
     ),
   };
 }
+

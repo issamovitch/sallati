@@ -8,8 +8,10 @@ import { moduleNumbers, orderedModules } from "@/lib/modules";
 import { normalizeStoreUrl } from "@/lib/store-link";
 import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
 import {
+  isEnabled,
   readModuleStates,
   SETTINGS_CHANGED_EVENT,
+  subscribeModuleSettings,
   type SettingsChangedDetail,
 } from "@/lib/settings";
 import { Button, GhostButton, Modal, Spinner, TextInput } from "@/components/ui";
@@ -350,6 +352,13 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
     window.addEventListener(SETTINGS_CHANGED_EVENT, onChange);
     return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, onChange);
   }, []);
+
+  // Live dot updates from other tabs/devices.
+  useEffect(() => {
+    return subscribeModuleSettings(merchantId, null, (moduleNum, settings) => {
+      setModuleStates((prev) => ({ ...prev, [moduleNum]: isEnabled(settings) }));
+    });
+  }, [merchantId]);
 
   useEffect(() => {
     const sync = () => setIsFullscreen(Boolean(document.fullscreenElement));
