@@ -17,7 +17,6 @@ import {
   type LuckWheelPrize,
 } from "@/lib/luck-wheel";
 import { FONT_OPTIONS } from "@/lib/fonts";
-import StoreLinkCard from "@/components/store-link-card";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { readMerchantId, writeModuleSettings } from "@/lib/settings";
 import { useModuleConfig } from "@/components/settings-provider";
@@ -163,8 +162,6 @@ export default function LuckWheelConfig() {
   return (
     <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
       <div className="space-y-5">
-        <StoreLinkCard />
-
         <Card title="إعدادات العجلة">
           <ToggleRow
             title="تفعيل عجلة الحظ"

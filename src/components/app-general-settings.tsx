@@ -6,6 +6,7 @@ import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
 import { readMerchantId } from "@/lib/settings";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { Button, Card, Field, Hint, Page, TextInput, useToast } from "@/components/ui";
+import StoreLinkCard from "@/components/store-link-card";
 
 export default function AppGeneralSettings() {
   const [url, setUrl] = useState("");
@@ -39,32 +40,36 @@ export default function AppGeneralSettings() {
     <Page title="سلتي">
       <Hint className="mt-2 text-sm">اختر وحدة من القائمة للبدء</Hint>
 
-      <Card title="إعدادات التطبيق العامة" className="mt-6">
-        <Hint>رابط متجرك (صفحة المتجر الرئيسية).</Hint>
+      <div className="mt-6 space-y-5">
+        <StoreLinkCard />
 
-        <Field label="رابط المتجر" className="mt-3">
-          <TextInput
-            type="url"
-            dir="ltr"
-            value={url}
-            onChange={(event) => setUrl(event.target.value)}
-            placeholder="https://example.salla.sa"
-            className="mt-1 text-left"
-          />
-        </Field>
+        <Card title="إعدادات التطبيق العامة">
+          <Hint>رابط متجرك (صفحة المتجر الرئيسية).</Hint>
 
-        <div className="mt-4 flex justify-end">
-          <Button type="button" onClick={save}>
-            حفظ
-          </Button>
-        </div>
+          <Field label="رابط المتجر" className="mt-3">
+            <TextInput
+              type="url"
+              dir="ltr"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              placeholder="https://example.salla.sa"
+              className="mt-1 text-left"
+            />
+          </Field>
 
-        {!isSupabaseConfigured() && (
-          <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-            Supabase غير مهيّأ — سيتم الحفظ محليًا فقط.
-          </p>
-        )}
-      </Card>
+          <div className="mt-4 flex justify-end">
+            <Button type="button" onClick={save}>
+              حفظ
+            </Button>
+          </div>
+
+          {!isSupabaseConfigured() && (
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+              Supabase غير مهيّأ — سيتم الحفظ محليًا فقط.
+            </p>
+          )}
+        </Card>
+      </div>
     </Page>
   );
 }

@@ -13,8 +13,6 @@ type Status = {
   installUrl: string | null;
 };
 
-const DATE_FORMAT = new Intl.DateTimeFormat("ar-SA-u-ca-gregory", { dateStyle: "medium" });
-
 /**
  * One-time store link. Salla only issues tokens when the merchant approves the
  * app, so this is the single explicit step; afterwards refreshes run silently.
@@ -69,11 +67,7 @@ export default function StoreLinkCard() {
   if (!status?.linked) {
     return (
       <Card title="ربط المتجر">
-        <Hint className="text-sm leading-7">
-          لإنشاء كوبون لكل زائر تلقائيًا، اربط متجرك مرة واحدة. بعد الموافقة يتولى
-          التطبيق تجديد الصلاحية في الخلفية دون أي خطوة أخرى. حتى ذلك الحين تعمل
-          الجوائز بأكواد الكوبون اليدوية.
-        </Hint>
+        <Hint>اربط متجرك مرة واحدة ليبدأ سلتي بالعمل عليه.</Hint>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {status?.installUrl && (
@@ -86,35 +80,26 @@ export default function StoreLinkCard() {
           )}
           <GhostButton type="button" onClick={refresh} className="inline-flex items-center gap-1">
             <HiArrowPath className="size-4" />
-            تحديث الحالة
+            تحديث
           </GhostButton>
         </div>
-
-        <Hint className="mt-3">
-          بعد الموافقة على التطبيق في سلة، ارجع إلى هذه الصفحة — يتم التحديث تلقائيًا.
-        </Hint>
       </Card>
     );
   }
 
   return (
     <Card title="ربط المتجر">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-            مربوط{status.storeName ? ` · ${status.storeName}` : ""}
+            متجرك مربوط
           </p>
-          {status.expiresAt ? (
-            <Hint className="mt-1">
-              صلاحية الوصول حتى {DATE_FORMAT.format(new Date(status.expiresAt))} ويُجدَّد
-              تلقائيًا.
-            </Hint>
-          ) : null}
+          {status.storeName && <Hint className="mt-1">{status.storeName}</Hint>}
         </div>
 
         <GhostButton type="button" onClick={refresh} className="inline-flex items-center gap-1">
           <HiArrowPath className="size-4" />
-          تحديث الحالة
+          تحديث
         </GhostButton>
       </div>
     </Card>
