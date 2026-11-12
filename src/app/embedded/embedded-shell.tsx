@@ -7,6 +7,11 @@ import { embedded } from "@salla.sa/embedded-sdk";
 import { moduleNumbers, orderedModules } from "@/lib/modules";
 import { normalizeStoreUrl } from "@/lib/store-link";
 import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
+import {
+  readModuleStates,
+  SETTINGS_CHANGED_EVENT,
+  type SettingsChangedDetail,
+} from "@/lib/settings";
 import { Button, GhostButton, Modal, Spinner, TextInput } from "@/components/ui";
 
 type Status = "connecting" | "ready" | "error";
@@ -20,17 +25,17 @@ const SLOW_AFTER_MS = 12_000;
 const STORE_WINDOW_NAME = "sallati-store-preview";
 
 // Demo merchant used when the dashboard is opened without a Salla session.
-const DEFAULT_MERCHANT_ID = 1469694745;
+// Override with NEXT_PUBLIC_DEMO_MERCHANT_ID to point previews at another store.
+const DEFAULT_MERCHANT_ID =
+  Number(process.env.NEXT_PUBLIC_DEMO_MERCHANT_ID) || 415866005;
 
 // Sallati is Arabic-only: force RTL regardless of the dashboard locale.
 const APP_LANG = "ar";
 const APP_DIR = "rtl";
 
-const priorityDot: Record<string, string> = {
-  high: "bg-[#1781ae]",
-  medium: "bg-amber-500",
-  low: "bg-zinc-400",
-};
+// Sidebar status dot: light green = enabled for this store, gray = off.
+const dotOn = "bg-emerald-400 dark:bg-emerald-400";
+const dotOff = "bg-zinc-300 dark:bg-zinc-600";
 
 // Single-flight: the SDK handshake must only start once, even under React StrictMode.
 let initPromise: Promise<{ layout: { theme: "light" | "dark"; dir: "ltr" | "rtl"; locale: string } }> | null = null;
@@ -176,6 +181,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [storePromptOpen, setStorePromptOpen] = useState(false);
   const [storeInput, setStoreInput] = useState("");
+  const [moduleStates, setModuleStates] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -191,6 +197,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           setMerchantId(DEFAULT_MERCHANT_ID);
           setLocalPreview(true);
           setStoreUrl("/");
+          setModuleStates(await readModuleStates(DEFAULT_MERCHANT_ID));
           setStatus("ready");
           return;
         }
@@ -202,6 +209,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           setMerchantId(DEFAULT_MERCHANT_ID);
           try { sessionStorage.setItem("sallati.merchant-id", String(DEFAULT_MERCHANT_ID)); } catch { /* */ }
           setStoreUrl(await readStoreUrl(DEFAULT_MERCHANT_ID));
+          setModuleStates(await readModuleStates(DEFAULT_MERCHANT_ID));
           if (cancelled) return;
           setStatus("ready");
           return;
@@ -280,6 +288,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
         // Load the store link from Supabase (null on first install).
         const link = await readStoreUrl(result.merchantId);
         setStoreUrl(link);
+        setModuleStates(await readModuleStates(result.merchantId));
 
         // Then complete the host handshake (single-flight, no hard timeout).
         const { layout } = await initOnce();
@@ -319,9 +328,28 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
     };
   }, []);
 
+  // Refresh the sidebar status dots whenever the merchant or route changes,
+  // and immediately when a module writes its settings.
   useEffect(() => {
-    setSidebarOpen(false);
-  }, [pathname]);
+    if (merchantId === null) return;
+    let cancelled = false;
+    void readModuleStates(merchantId).then((states) => {
+      if (!cancelled) setModuleStates(states);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [merchantId, pathname]);
+
+  useEffect(() => {
+    const onChange = (event: Event) => {
+      const detail = (event as CustomEvent<SettingsChangedDetail>).detail;
+      if (!detail) return;
+      setModuleStates((prev) => ({ ...prev, [detail.moduleNum]: detail.enabled }));
+    };
+    window.addEventListener(SETTINGS_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, onChange);
+  }, []);
 
   useEffect(() => {
     const sync = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -515,17 +543,23 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           <ul className="space-y-0.5">
             {orderedModules.map((module) => {
               const active = pathname === `/embedded/${module.slug}`;
+              const enabled = moduleStates[moduleNumbers[module.slug]] === true;
               return (
                 <li key={module.slug}>
                   <Link
                     href={`/embedded/${module.slug}`}
+                    onClick={() => setSidebarOpen(false)}
                     className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                       active
                         ? "bg-[#1781ae]/15 font-medium text-[#1781ae] dark:bg-[#1781ae]/20 dark:text-[#a4f0ed]"
                         : "text-zinc-600 hover:bg-[#1781ae]/10 dark:text-zinc-400 dark:hover:bg-[#1781ae]/15"
                     }`}
                   >
-                    <span className={`size-1.5 shrink-0 rounded-full ${priorityDot[module.priority]}`} />
+                    <span
+                      className={`size-2 shrink-0 rounded-full ${enabled ? dotOn : dotOff}`}
+                      title={enabled ? "مفعّل لهذا المتجر" : "غير مفعّل"}
+                      aria-label={enabled ? "مفعّل" : "غير مفعّل"}
+                    />
                     <span className="min-w-0 flex-1 truncate">{module.name}</span>
                     <span className="text-[11px] text-zinc-400">{moduleNumbers[module.slug]}</span>
                   </Link>

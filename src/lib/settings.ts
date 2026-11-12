@@ -60,5 +60,61 @@ export async function writeModuleSettings<T>(
       { merchant_id: mid(merchantId), module_num: moduleNum, settings },
       { onConflict: "merchant_id,module_num" },
     );
-  return !error;
+  if (error) return false;
+
+  // Keep the sidebar dots in sync without a full reload.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(SETTINGS_CHANGED_EVENT, {
+        detail: {
+          merchantId: mid(merchantId),
+          moduleNum,
+          enabled: isEnabled(settings),
+        },
+      }),
+    );
+  }
+
+  return true;
+}
+
+export const SETTINGS_CHANGED_EVENT = "sallati:settings-changed";
+
+export type SettingsChangedDetail = {
+  merchantId: number;
+  moduleNum: number;
+  enabled: boolean;
+};
+
+/** A module counts as enabled only when its row exists and `enabled` is true. */
+export function isEnabled(settings: unknown): boolean {
+  return Boolean(
+    settings &&
+      typeof settings === "object" &&
+      (settings as Record<string, unknown>).enabled === true,
+  );
+}
+
+/**
+ * Enabled state for every module that has a settings row for this merchant.
+ * Modules without a row are simply absent, which the sidebar renders as off.
+ */
+export async function readModuleStates(
+  merchantId: number | null,
+): Promise<Record<number, boolean>> {
+  const supabase = client();
+  if (!supabase) return {};
+
+  const { data, error } = await supabase
+    .from(SETTINGS_TABLE)
+    .select("module_num, settings")
+    .eq("merchant_id", mid(merchantId));
+
+  if (error || !data) return {};
+
+  const states: Record<number, boolean> = {};
+  for (const row of data as { module_num: number; settings: unknown }[]) {
+    states[row.module_num] = isEnabled(row.settings);
+  }
+  return states;
 }
