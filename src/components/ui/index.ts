@@ -8,6 +8,7 @@ export { default as EmptyState } from "./empty-state";
 export { default as Toggle } from "./toggle";
 export { default as ToggleRow } from "./toggle-row";
 export { default as ColorField } from "./color-field";
+export { default as ColorInput } from "./color-input";
 export { default as Wysiwyg } from "./wysiwyg";
 export { TextInput, Select } from "./input";
 export { default as FontSelect } from "./font-select";

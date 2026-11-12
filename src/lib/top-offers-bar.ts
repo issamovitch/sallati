@@ -35,19 +35,10 @@ export const DEFAULT_TOP_OFFERS_BAR: TopOffersBarConfig = {
   animationSpeed: 500,
 };
 
-export const TOP_OFFERS_BAR_FONT_OPTIONS = [
-  { value: "Cairo", label: "القاهرة" },
-  { value: "Tajawal", label: "تجوال" },
-  { value: "Almarai", label: "المراعي" },
-  { value: "IBM Plex Sans Arabic", label: "آي بي إم بلكس العربية" },
-  { value: "Noto Sans Arabic", label: "نوتو سانس العربية" },
-  { value: "Amiri", label: "أميري" },
-  { value: "Scheherazade New", label: "شهرزاد الجديد" },
-  { value: "Lateef", label: "لطيف" },
-  { value: "Reem Kufi", label: "ريم كوفي" },
-];
-
-export const TOP_OFFERS_BAR_FONTS = TOP_OFFERS_BAR_FONT_OPTIONS.map((option) => option.value);
+export {
+  FONT_OPTIONS as TOP_OFFERS_BAR_FONT_OPTIONS,
+  FONT_FAMILIES as TOP_OFFERS_BAR_FONTS,
+} from "@/lib/fonts";
 
 function normalizeTexts(raw: unknown): TopOffersBarText[] {
   if (Array.isArray(raw)) {
