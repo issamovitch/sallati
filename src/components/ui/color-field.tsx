@@ -25,12 +25,12 @@ export default function ColorField({
         />
       </div>
       <div className="mt-2 flex items-center justify-between">
-        <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">{value}</span>
+        <span className="font-mono text-sm text-zinc-500 dark:text-zinc-400">{value}</span>
         <TextInput
           type="text"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-24 px-2 py-1 text-xs"
+          className="w-24 px-2 py-1 text-sm"
         />
       </div>
     </Field>

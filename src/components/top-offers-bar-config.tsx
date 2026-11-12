@@ -239,7 +239,7 @@ export default function TopOffersBarConfig() {
                     const duration = Math.max(1, Math.min(3600, Number(event.target.value) || 5));
                     update({ ...config, texts: config.texts.map((text) => ({ ...text, duration })) });
                   }}
-                  className="mt-1 w-24 px-2 py-1 text-xs"
+                  className="mt-1 w-24 px-2 py-1 text-sm"
                 />
               </Field>
               <Field label="سرعة الحركة (ms)">
@@ -255,7 +255,7 @@ export default function TopOffersBarConfig() {
                       animationSpeed: clampAnimationSpeed(Number(event.target.value)),
                     })
                   }
-                  className="mt-1 w-24 px-2 py-1 text-xs"
+                  className="mt-1 w-24 px-2 py-1 text-sm"
                 />
               </Field>
             </div>
@@ -293,7 +293,7 @@ export default function TopOffersBarConfig() {
         >
           <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
             {!config.enabled ? (
-              <div className="bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-400 dark:bg-zinc-800">
+              <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
                 الشريط معطّل
               </div>
             ) : snippet ? (
@@ -311,7 +311,7 @@ export default function TopOffersBarConfig() {
                 }}
               />
             ) : (
-              <div className="bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-400 dark:bg-zinc-800">
+              <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
                 جارٍ التحميل…
               </div>
             )}

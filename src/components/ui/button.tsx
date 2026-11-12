@@ -42,7 +42,7 @@ export function LinkButton({
   return (
     <button
       {...props}
-      className={`text-xs text-[#1781ae] hover:underline ${className}`}
+      className={`text-sm text-[#1781ae] hover:underline ${className}`}
     />
   );
 }
@@ -54,7 +54,7 @@ export function DangerButton({
   return (
     <button
       {...props}
-      className={`text-xs text-red-500 hover:text-red-700 ${className}`}
+      className={`text-sm text-red-500 hover:text-red-700 ${className}`}
     />
   );
 }

@@ -421,7 +421,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{error}</p>
           {errorRaw && (
             <details className="mt-4 text-right">
-              <summary className="cursor-pointer text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+              <summary className="cursor-pointer text-sm font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200">
                 تفاصيل الخطأ
               </summary>
               <pre
@@ -498,7 +498,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
       >
         <div className="flex h-14 items-center justify-between gap-2 border-b border-black/10 px-4 dark:border-white/10">
           <span className="text-sm font-semibold">الوحدات</span>
-          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+          <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-sm text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
             {orderedModules.length}
           </span>
           <button
@@ -552,7 +552,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
             <span className="font-semibold">سلتي</span>
           </Link>
 
-          <span className="hidden text-xs text-zinc-400 sm:inline">مساعد النمو لمتجرك</span>
+          <span className="hidden text-sm text-zinc-400 sm:inline">مساعد النمو لمتجرك</span>
 
           <div className="ms-auto flex items-center gap-2">
             <span
@@ -587,7 +587,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
               className="flex h-9 items-center gap-2 rounded-lg border border-black/10 px-2.5 text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-zinc-800"
             >
               <Icon path={icons.preview} className="size-4" />
-              <span className="hidden text-xs font-medium sm:inline">معاينة</span>
+              <span className="hidden text-sm font-medium sm:inline">معاينة</span>
             </button>
 
             <button
@@ -615,7 +615,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
                   <button
                     type="button"
                     onClick={retry}
-                    className="mt-3 text-xs font-medium text-[#1781ae] underline dark:text-[#a4f0ed]"
+                    className="mt-3 text-sm font-medium text-[#1781ae] underline dark:text-[#a4f0ed]"
                   >
                     إعادة التحميل
                   </button>

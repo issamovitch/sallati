@@ -8,7 +8,7 @@ export default function Hint({
   className?: string;
 }) {
   return (
-    <p className={`text-xs text-zinc-500 dark:text-zinc-400 ${className}`}>
+    <p className={`text-sm text-zinc-500 dark:text-zinc-400 ${className}`}>
       {children}
     </p>
   );

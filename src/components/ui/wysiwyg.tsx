@@ -81,7 +81,7 @@ export default function Wysiwyg({
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => exec("bold")}
-            className="rounded px-2 py-1 text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            className="rounded px-2 py-1 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700"
             title="Bold"
           >
             <b>B</b>
@@ -90,7 +90,7 @@ export default function Wysiwyg({
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => exec("italic")}
-            className="rounded px-2 py-1 text-xs italic hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            className="rounded px-2 py-1 text-sm italic hover:bg-zinc-200 dark:hover:bg-zinc-700"
             title="Italic"
           >
             I
@@ -99,7 +99,7 @@ export default function Wysiwyg({
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={insertLink}
-            className="rounded px-2 py-1 text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            className="rounded px-2 py-1 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700"
             title="Link"
           >
             🔗
@@ -108,7 +108,7 @@ export default function Wysiwyg({
             type="button"
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => setShowIcons((open) => !open)}
-            className="rounded px-2 py-1 text-xs hover:bg-zinc-200 dark:hover:bg-zinc-700"
+            className="rounded px-2 py-1 text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700"
             title="Icon"
           >
             +
@@ -121,7 +121,7 @@ export default function Wysiwyg({
                 value={iconSearch}
                 onChange={(event) => setIconSearch(event.target.value)}
                 placeholder="بحث..."
-                className="mb-2 px-2 py-1 text-xs"
+                className="mb-2 px-2 py-1 text-sm"
               />
               <div className="grid max-h-40 grid-cols-8 gap-1 overflow-y-auto">
                 {icons.map(({ name, Comp }) => (
