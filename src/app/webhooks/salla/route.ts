@@ -1,7 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { removeStore, upsertStore } from "@/lib/store-registry";
-import { discoverStoreUrl } from "@/lib/salla-store";
+import { discoverStoreInfo } from "@/lib/salla-store";
 
 type SallaEvent = {
   event?: string;
@@ -15,11 +15,30 @@ type SallaEvent = {
   };
 };
 
+function safeEqual(a: string, b: string) {
+  const left = Buffer.from(a, "utf8");
+  const right = Buffer.from(b, "utf8");
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
 function verifySignature(rawBody: string, provided: string, secret: string) {
   const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  const a = Buffer.from(provided, "utf8");
-  const b = Buffer.from(expected, "utf8");
-  return a.length === b.length && timingSafeEqual(a, b);
+  return safeEqual(provided, expected);
+}
+
+/**
+ * The portal can protect the endpoint with either strategy. Token sends the
+ * shared secret in the Authorization header; Signature sends an HMAC of the
+ * body in X-Salla-Signature. Accept either, both prove knowledge of the secret.
+ */
+function isAuthorized(
+  rawBody: string,
+  headers: { authorization: string; signature: string },
+  secret: string,
+) {
+  const token = headers.authorization.replace(/^Bearer\s+/i, "").trim();
+  if (token && safeEqual(token, secret)) return true;
+  return Boolean(headers.signature) && verifySignature(rawBody, headers.signature, secret);
 }
 
 export async function POST(request: Request) {
@@ -32,8 +51,15 @@ export async function POST(request: Request) {
   }
 
   const rawBody = await request.text();
-  const signature = request.headers.get("x-salla-signature") ?? "";
-  if (!verifySignature(rawBody, signature, secret)) {
+  const authorized = isAuthorized(
+    rawBody,
+    {
+      authorization: request.headers.get("authorization") ?? "",
+      signature: request.headers.get("x-salla-signature") ?? "",
+    },
+    secret,
+  );
+  if (!authorized) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
@@ -61,17 +87,18 @@ export async function POST(request: Request) {
       const expires = Number(payload.data?.expires);
       const expiresAt = Number.isFinite(expires) ? expires * 1000 : undefined;
 
-      const storeUrl = await discoverStoreUrl(accessToken, merchantId);
+      const store = await discoverStoreInfo(accessToken, merchantId);
 
-      await upsertStore({
+      const stored = await upsertStore({
         merchantId,
         accessToken,
         refreshToken,
         expiresAt,
-        storeUrl: storeUrl ?? undefined,
+        storeUrl: store.url ?? undefined,
+        storeName: store.name ?? undefined,
       });
 
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ ok: true, stored });
     }
 
     case "app.uninstalled": {
