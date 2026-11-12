@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiArrowPath, HiPlus, HiTrash } from "react-icons/hi2";
@@ -13,8 +13,6 @@ import {
   MIN_SPIN_DURATION,
   normalizeLuckWheel,
   prizeChance,
-  readLuckWheel,
-  writeLuckWheel,
   type LuckWheelConfig as Config,
   type LuckWheelPrize,
 } from "@/lib/luck-wheel";
@@ -104,13 +102,11 @@ export default function LuckWheelConfig() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setConfig(readLuckWheel(readMerchantId()));
       if (!isSupabaseConfigured()) return;
       const remote = await readModuleSettings<Config>(readMerchantId(), LUCK_WHEEL_MODULE_NUM);
       if (cancelled || !remote) return;
       const merged = normalizeLuckWheel(remote);
       setConfig(merged);
-      writeLuckWheel(readMerchantId(), merged);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -152,7 +148,6 @@ export default function LuckWheelConfig() {
   function save() {
     const next = normalizeLuckWheel(config);
     setConfig(next);
-    writeLuckWheel(readMerchantId(), next);
     if (isSupabaseConfigured()) {
       void writeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, next);
     }

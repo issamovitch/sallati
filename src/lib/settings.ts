@@ -80,11 +80,6 @@ export async function writeModuleSettings<T>(
 
 export const SETTINGS_CHANGED_EVENT = "sallati:settings-changed";
 
-/** Browser cache keys must never be shared across merchants. */
-export function scopedKey(base: string, merchantId: number | null): string {
-  return `${base}.${merchantId ?? "anon"}`;
-}
-
 export type SettingsChangedDetail = {
   merchantId: number;
   moduleNum: number;

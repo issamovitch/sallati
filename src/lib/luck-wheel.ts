@@ -1,12 +1,10 @@
-import { scopedKey } from "@/lib/settings";
-
-export type LuckWheelPrize = {
+﻿export type LuckWheelPrize = {
   id: string;
   /** Text shown on the wheel segment. */
   label: string;
   /** Relative probability. Normalized against the sum of all prizes. */
   weight: number;
-  /** Manual coupon code. Empty means "no prize" (حظ أوفر). */
+  /** Manual coupon code. Empty means "no prize" (Ø­Ø¸ Ø£ÙˆÙØ±). */
   couponCode: string;
   color: string;
 };
@@ -37,9 +35,6 @@ export type LuckWheelConfig = {
   emailPlaceholder: string;
 };
 
-export const LUCK_WHEEL_KEY = "sallati:luck-wheel";
-export const LUCK_WHEEL_EVENT = "sallati:luck-wheel";
-
 export const MIN_PRIZES = 2;
 export const MAX_PRIZES = 10;
 export const MIN_SPIN_DURATION = 1500;
@@ -62,21 +57,21 @@ export const LUCK_WHEEL_PALETTE = [
 
 function defaultPrizes(): LuckWheelPrize[] {
   return [
-    { id: "prize-1", label: "خصم 10%", weight: 20, couponCode: "SPIN10", color: "#1781ae" },
-    { id: "prize-2", label: "خصم 15%", weight: 15, couponCode: "SPIN15", color: "#070d42" },
-    { id: "prize-3", label: "خصم 20%", weight: 10, couponCode: "SPIN20", color: "#f59e0b" },
-    { id: "prize-4", label: "شحن مجاني", weight: 15, couponCode: "FREESHIP", color: "#10b981" },
-    { id: "prize-5", label: "خصم 5%", weight: 30, couponCode: "SPIN5", color: "#8b5cf6" },
-    { id: "prize-6", label: "حظ أوفر", weight: 10, couponCode: "", color: "#94a3b8" },
+    { id: "prize-1", label: "Ø®ØµÙ… 10%", weight: 20, couponCode: "SPIN10", color: "#1781ae" },
+    { id: "prize-2", label: "Ø®ØµÙ… 15%", weight: 15, couponCode: "SPIN15", color: "#070d42" },
+    { id: "prize-3", label: "Ø®ØµÙ… 20%", weight: 10, couponCode: "SPIN20", color: "#f59e0b" },
+    { id: "prize-4", label: "Ø´Ø­Ù† Ù…Ø¬Ø§Ù†ÙŠ", weight: 15, couponCode: "FREESHIP", color: "#10b981" },
+    { id: "prize-5", label: "Ø®ØµÙ… 5%", weight: 30, couponCode: "SPIN5", color: "#8b5cf6" },
+    { id: "prize-6", label: "Ø­Ø¸ Ø£ÙˆÙØ±", weight: 10, couponCode: "", color: "#94a3b8" },
   ];
 }
 
 export const DEFAULT_LUCK_WHEEL: LuckWheelConfig = {
   enabled: true,
-  headline: "جرّب حظك واربح خصمًا!",
-  description: "أدخل بريدك الإلكتروني ثم أدر العجلة لتعرف جائزتك.",
-  buttonText: "أدر العجلة",
-  successText: "مبروك! هذه جائزتك:",
+  headline: "Ø¬Ø±Ù‘Ø¨ Ø­Ø¸Ùƒ ÙˆØ§Ø±Ø¨Ø­ Ø®ØµÙ…Ù‹Ø§!",
+  description: "Ø£Ø¯Ø®Ù„ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ø«Ù… Ø£Ø¯Ø± Ø§Ù„Ø¹Ø¬Ù„Ø© Ù„ØªØ¹Ø±Ù Ø¬Ø§Ø¦Ø²ØªÙƒ.",
+  buttonText: "Ø£Ø¯Ø± Ø§Ù„Ø¹Ø¬Ù„Ø©",
+  successText: "Ù…Ø¨Ø±ÙˆÙƒ! Ù‡Ø°Ù‡ Ø¬Ø§Ø¦Ø²ØªÙƒ:",
   spinDuration: 4500,
   accentColor: "#1781ae",
   fontFamily: "Cairo",
@@ -87,7 +82,7 @@ export const DEFAULT_LUCK_WHEEL: LuckWheelConfig = {
   openOnButton: true,
   oncePerVisitor: true,
   requireEmail: true,
-  emailPlaceholder: "بريدك الإلكتروني",
+  emailPlaceholder: "Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ",
 };
 
 function isHexColor(value: unknown): value is string {
@@ -107,7 +102,7 @@ function cleanString(value: unknown, fallback: string, maxLength: number): strin
 
 function normalizePrize(raw: unknown, index: number): LuckWheelPrize {
   const parsed = (raw && typeof raw === "object" ? raw : {}) as Partial<LuckWheelPrize>;
-  const label = cleanString(parsed.label, `جائزة ${index + 1}`, 40);
+  const label = cleanString(parsed.label, `Ø¬Ø§Ø¦Ø²Ø© ${index + 1}`, 40);
 
   return {
     id: cleanString(parsed.id, `prize-${index + 1}`, 60),
@@ -195,25 +190,6 @@ export function normalizeLuckWheel(raw: unknown): LuckWheelConfig {
       60,
     ),
   };
-}
-
-export function readLuckWheel(merchantId: number | null): LuckWheelConfig {
-  try {
-    const raw = localStorage.getItem(scopedKey(LUCK_WHEEL_KEY, merchantId));
-    if (!raw) return DEFAULT_LUCK_WHEEL;
-    return normalizeLuckWheel(JSON.parse(raw));
-  } catch {
-    return DEFAULT_LUCK_WHEEL;
-  }
-}
-
-export function writeLuckWheel(merchantId: number | null, config: LuckWheelConfig) {
-  try {
-    localStorage.setItem(scopedKey(LUCK_WHEEL_KEY, merchantId), JSON.stringify(config));
-    window.dispatchEvent(new Event(LUCK_WHEEL_EVENT));
-  } catch {
-    /* storage unavailable */
-  }
 }
 
 export function prizeChance(prizes: LuckWheelPrize[], prize: LuckWheelPrize): number {

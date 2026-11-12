@@ -1,5 +1,3 @@
-import { scopedKey } from "@/lib/settings";
-
 export type TopOffersBarText = {
   message: string;
   duration: number; // seconds
@@ -24,12 +22,9 @@ export function clampAnimationSpeed(value: number): number {
   return Math.max(MIN_ANIMATION_SPEED, Math.min(MAX_ANIMATION_SPEED, value));
 }
 
-export const TOP_OFFERS_BAR_KEY = "sallati:top-offers-bar";
-export const TOP_OFFERS_BAR_EVENT = "sallati:top-offers-bar";
-
 export const DEFAULT_TOP_OFFERS_BAR: TopOffersBarConfig = {
   enabled: true,
-  texts: [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }],
+  texts: [{ message: "Ø´Ø­Ù† Ù…Ø¬Ø§Ù†ÙŠ Ù„Ù„Ø·Ù„Ø¨Ø§Øª ÙÙˆÙ‚ 200 Ø±.Ø³", duration: 5 }],
   color: "#000000",
   height: 46,
   fontFamily: "Cairo",
@@ -64,7 +59,7 @@ function normalizeTexts(raw: unknown): TopOffersBarText[] {
     const m = (raw as { message?: unknown }).message;
     if (typeof m === "string") return [{ message: m, duration: 5 }];
   }
-  return [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }];
+  return [{ message: "Ø´Ø­Ù† Ù…Ø¬Ø§Ù†ÙŠ Ù„Ù„Ø·Ù„Ø¨Ø§Øª ÙÙˆÙ‚ 200 Ø±.Ø³", duration: 5 }];
 }
 
 export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
@@ -97,26 +92,4 @@ export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
         : DEFAULT_TOP_OFFERS_BAR.animationSpeed,
     ),
   };
-}
-
-export function readTopOffersBar(merchantId: number | null): TopOffersBarConfig {
-  try {
-    const raw = localStorage.getItem(scopedKey(TOP_OFFERS_BAR_KEY, merchantId));
-    if (!raw) return DEFAULT_TOP_OFFERS_BAR;
-    return normalizeTopOffersBar(JSON.parse(raw));
-  } catch {
-    return DEFAULT_TOP_OFFERS_BAR;
-  }
-}
-
-export function writeTopOffersBar(merchantId: number | null, config: TopOffersBarConfig) {
-  try {
-    localStorage.setItem(
-      scopedKey(TOP_OFFERS_BAR_KEY, merchantId),
-      JSON.stringify(config),
-    );
-    window.dispatchEvent(new Event(TOP_OFFERS_BAR_EVENT));
-  } catch {
-    /* storage unavailable */
-  }
 }

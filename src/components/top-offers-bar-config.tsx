@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
@@ -10,8 +10,6 @@ import {
   clampAnimationSpeed,
   normalizeTopOffersBar,
   type TopOffersBarConfig as Config,
-  readTopOffersBar,
-  writeTopOffersBar,
 } from "@/lib/top-offers-bar";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { readModuleSettings, writeModuleSettings, readMerchantId } from "@/lib/settings";
@@ -97,13 +95,11 @@ export default function TopOffersBarConfig() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setConfig(readTopOffersBar(readMerchantId()));
       if (!isSupabaseConfigured()) return;
       const remote = await readModuleSettings<Config>(readMerchantId(), OFFERS_MODULE_NUM);
       if (cancelled || !remote) return;
       const merged = normalizeTopOffersBar(remote);
       setConfig(merged);
-      writeTopOffersBar(readMerchantId(), merged);
     })();
     return () => { cancelled = true; };
   }, []);
@@ -131,7 +127,6 @@ export default function TopOffersBarConfig() {
   function save() {
     const next = normalizeTopOffersBar(config);
     setConfig(next);
-    writeTopOffersBar(readMerchantId(), next);
     if (isSupabaseConfigured()) {
       void writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
     }
