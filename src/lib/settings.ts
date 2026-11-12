@@ -31,6 +31,15 @@ export function readMerchantId(): number | null {
   }
 }
 
+/** Salla iframe session token, needed for every server-side write. */
+export function readSessionToken(): string {
+  try {
+    return sessionStorage.getItem("sallati.session-token") ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export async function readModuleSettings<T>(
   merchantId: number | null,
   moduleNum: number,
@@ -47,22 +56,29 @@ export async function readModuleSettings<T>(
   return (data.settings ?? null) as T | null;
 }
 
+/**
+ * Writes go through the server: public RLS no longer allows anon writes, and
+ * the route proves ownership with the Salla session token before writing.
+ */
 export async function writeModuleSettings<T>(
-  merchantId: number | null,
+  _merchantId: number | null,
   moduleNum: number,
   settings: T,
 ): Promise<boolean> {
-  const supabase = client();
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from(SETTINGS_TABLE)
-    .upsert(
-      { merchant_id: mid(merchantId), module_num: moduleNum, settings },
-      { onConflict: "merchant_id,module_num" },
-    );
-  if (error) return false;
-
-  return true;
+  try {
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: readSessionToken(),
+        moduleNum,
+        settings,
+      }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 /** A module counts as enabled only when its row exists and `enabled` is true. */

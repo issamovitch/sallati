@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/server-auth";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -35,7 +36,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: 400, headers: CORS_HEADERS });
   }
 
-  const supabase = createSupabaseServerClient();
+  const ip = clientIp(request);
+  if (
+    !rateLimit(`lead:ip:${ip}`, 5, 3_600_000) ||
+    !rateLimit(`lead:merchant:${merchantId}`, 30, 3_600_000)
+  ) {
+    return NextResponse.json(
+      { ok: false },
+      { status: 429, headers: { ...CORS_HEADERS, "Retry-After": "3600" } },
+    );
+  }
+
+  const supabase = createSupabaseAdminClient();
   if (!supabase) {
     return NextResponse.json({ ok: false }, { status: 503, headers: CORS_HEADERS });
   }

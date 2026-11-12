@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { normalizeLuckWheel } from "@/lib/luck-wheel";
 import { moduleNumbers } from "@/lib/modules";
 
@@ -19,6 +20,13 @@ export async function OPTIONS() {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const merchantId = Number(searchParams.get("merchant_id"));
+
+  if (!rateLimit(`lw:${clientIp(request)}:${merchantId}`, 120, 60_000)) {
+    return NextResponse.json(
+      { enabled: false },
+      { status: 429, headers: { ...CORS_HEADERS, "Retry-After": "60" } },
+    );
+  }
 
   if (!Number.isFinite(merchantId) || merchantId <= 0) {
     return NextResponse.json({ enabled: false }, { headers: CORS_HEADERS });

@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/server-auth";
 import { canEncryptTokens, decryptToken, encryptToken } from "@/lib/token-crypto";
 
 const TABLE = "stores";
@@ -30,7 +30,7 @@ type StoreRow = {
 };
 
 function client() {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   if (!supabase || !canEncryptTokens()) return null;
   return supabase;
 }
@@ -136,7 +136,7 @@ export async function replaceStoreTokens(
 }
 
 export async function removeStore(merchantId: number): Promise<void> {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   if (!supabase) return;
 
   await supabase

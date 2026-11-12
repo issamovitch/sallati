@@ -1,4 +1,5 @@
 import { createSupabaseServerClient, getSupabaseBrowserClient } from "@/lib/supabase";
+import { readSessionToken } from "@/lib/settings";
 
 export type StoreRow = { merchant_id: number; store_url: string | null };
 
@@ -23,11 +24,19 @@ export async function readStoreUrl(merchantId: number | null): Promise<string | 
   return (data.store_url as string | null) ?? null;
 }
 
-export async function saveStoreUrl(merchantId: number | null, url: string): Promise<boolean> {
-  const supabase = client();
-  if (!supabase) return false;
-  const { error } = await supabase
-    .from("stores")
-    .upsert({ merchant_id: mid(merchantId), store_url: url }, { onConflict: "merchant_id" });
-  return !error;
+/** Writes go through the server: anon RLS no longer allows store updates. */
+export async function saveStoreUrl(
+  _merchantId: number | null,
+  url: string,
+): Promise<boolean> {
+  try {
+    const response = await fetch("/api/store/link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: readSessionToken(), url }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
