@@ -19,12 +19,8 @@ import {
 import { FONT_OPTIONS } from "@/lib/fonts";
 import StoreLinkCard from "@/components/store-link-card";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import {
-  readMerchantId,
-  readModuleSettings,
-  subscribeModuleSettings,
-  writeModuleSettings,
-} from "@/lib/settings";
+import { readMerchantId, writeModuleSettings } from "@/lib/settings";
+import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
 import {
   Button,
@@ -68,13 +64,19 @@ function buildPreviewDoc(snippet: string) {
 }
 
 export default function LuckWheelConfig() {
-  const [config, setConfig] = useState<Config>(DEFAULT_LUCK_WHEEL);
+  const { settings: remote, setRow } = useModuleConfig(LUCK_WHEEL_MODULE_NUM);
+  const [draft, setDraft] = useState<Config | null>(null);
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
-  const dirty = useRef(false);
   const seq = useRef(0);
   const { show } = useToast();
+
+  // Server row is the source of truth until the merchant edits something.
+  const config = useMemo(
+    () => draft ?? (remote === undefined ? DEFAULT_LUCK_WHEEL : normalizeLuckWheel(remote)),
+    [draft, remote],
+  );
 
   const previewDoc = useMemo(() => (snippet ? buildPreviewDoc(snippet) : ""), [snippet]);
 
@@ -106,28 +108,8 @@ export default function LuckWheelConfig() {
     loadSnippet();
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isSupabaseConfigured()) return;
-      const remote = await readModuleSettings<Config>(readMerchantId(), LUCK_WHEEL_MODULE_NUM);
-      if (cancelled || !remote) return;
-      setConfig(normalizeLuckWheel(remote));
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Live updates from other tabs/devices; unsaved edits always win.
-  useEffect(() => {
-    return subscribeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, (_num, settings) => {
-      if (dirty.current) return;
-      setConfig(normalizeLuckWheel(settings));
-    });
-  }, []);
-
   function update(next: Config) {
-    dirty.current = true;
-    setConfig(next);
+    setDraft(next);
   }
 
   function updatePrize(index: number, patch: Partial<LuckWheelPrize>) {
@@ -162,17 +144,19 @@ export default function LuckWheelConfig() {
 
   async function save() {
     const next = normalizeLuckWheel(config);
-    setConfig(next);
-    dirty.current = false;
-    refreshPreview();
-    if (isSupabaseConfigured()) {
-      const ok = await writeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, next);
-      if (!ok) {
-        dirty.current = true;
-        show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
-        return;
-      }
+    if (!isSupabaseConfigured()) {
+      show("تعذّر الحفظ: إعدادات قاعدة البيانات غير مهيّأة", "warning", 4000);
+      return;
     }
+    const ok = await writeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, next);
+    if (!ok) {
+      setDraft(next);
+      show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
+      return;
+    }
+    setRow(next);
+    setDraft(null);
+    refreshPreview();
     show("تم الحفظ");
   }
 

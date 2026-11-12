@@ -62,29 +62,8 @@ export async function writeModuleSettings<T>(
     );
   if (error) return false;
 
-  // Keep the sidebar dots in sync without a full reload.
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(
-      new CustomEvent(SETTINGS_CHANGED_EVENT, {
-        detail: {
-          merchantId: mid(merchantId),
-          moduleNum,
-          enabled: isEnabled(settings),
-        },
-      }),
-    );
-  }
-
   return true;
 }
-
-export const SETTINGS_CHANGED_EVENT = "sallati:settings-changed";
-
-export type SettingsChangedDetail = {
-  merchantId: number;
-  moduleNum: number;
-  enabled: boolean;
-};
 
 /** A module counts as enabled only when its row exists and `enabled` is true. */
 export function isEnabled(settings: unknown): boolean {
@@ -95,43 +74,46 @@ export function isEnabled(settings: unknown): boolean {
   );
 }
 
-/**
- * Enabled state for every module that has a settings row for this merchant.
- * Modules without a row are simply absent, which the sidebar renders as off.
- */export async function readModuleStates(
+/** Every settings row for a merchant, keyed by `module_num`. */
+export async function readMerchantSettings(
   merchantId: number | null,
-): Promise<Record<number, boolean>> {
+): Promise<Record<number, unknown>> {
   const supabase = client();
-  if (!supabase) return {};
+  if (!supabase || merchantId === null) return {};
 
   const { data, error } = await supabase
     .from(SETTINGS_TABLE)
     .select("module_num, settings")
-    .eq("merchant_id", mid(merchantId));
+    .eq("merchant_id", merchantId);
 
   if (error || !data) return {};
 
-  const states: Record<number, boolean> = {};
+  const rows: Record<number, unknown> = {};
   for (const row of data as { module_num: number; settings: unknown }[]) {
-    states[row.module_num] = isEnabled(row.settings);
+    rows[row.module_num] = row.settings;
   }
-  return states;
+  return rows;
 }
 
 /**
- * Live updates for one module (`moduleNum`) or the whole merchant (null).
+ * One Realtime channel per merchant. `onResync` fires after a reconnect
+ * because events sent while the socket was down are never replayed.
  * Requires `public.settings` in the `supabase_realtime` publication.
  */
-export function subscribeModuleSettings(
+export function subscribeMerchantSettings(
   merchantId: number | null,
-  moduleNum: number | null,
-  onChange: (moduleNum: number, settings: unknown) => void,
+  handlers: {
+    onRow: (moduleNum: number, settings: unknown) => void;
+    onResync: () => void;
+  },
 ): () => void {
   const supabase = client();
   if (!supabase || merchantId === null) return () => {};
 
+  let joined = false;
+
   const channel = supabase
-    .channel(`settings:${merchantId}:${moduleNum ?? "all"}`)
+    .channel(`settings:${merchantId}`)
     .on(
       "postgres_changes",
       {
@@ -143,11 +125,14 @@ export function subscribeModuleSettings(
       (payload) => {
         const row = payload.new as { module_num?: number; settings?: unknown } | null;
         if (!row?.module_num) return;
-        if (moduleNum !== null && row.module_num !== moduleNum) return;
-        onChange(row.module_num, row.settings);
+        handlers.onRow(row.module_num, row.settings);
       },
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status !== "SUBSCRIBED") return;
+      if (joined) handlers.onResync();
+      joined = true;
+    });
 
   return () => {
     void supabase.removeChannel(channel);

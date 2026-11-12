@@ -12,12 +12,8 @@ import {
   type TopOffersBarConfig as Config,
 } from "@/lib/top-offers-bar";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import {
-  readMerchantId,
-  readModuleSettings,
-  subscribeModuleSettings,
-  writeModuleSettings,
-} from "@/lib/settings";
+import { readMerchantId, writeModuleSettings } from "@/lib/settings";
+import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
 import {
   Button,
@@ -61,12 +57,20 @@ function buildPreviewDoc(snippet: string) {
 }
 
 export default function TopOffersBarConfig() {
-  const [config, setConfig] = useState<Config>(DEFAULT_TOP_OFFERS_BAR);
+  const { settings: remote, setRow } = useModuleConfig(OFFERS_MODULE_NUM);
+  const [draft, setDraft] = useState<Config | null>(null);
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
-  const dirty = useRef(false);
   const { show } = useToast();
+
+  // Server row is the source of truth until the merchant edits something.
+  const config = useMemo(
+    () =>
+      draft ??
+      (remote === undefined ? DEFAULT_TOP_OFFERS_BAR : normalizeTopOffersBar(remote)),
+    [draft, remote],
+  );
 
   const previewDoc = useMemo(() => (snippet ? buildPreviewDoc(snippet) : ""), [snippet]);
 
@@ -98,28 +102,8 @@ export default function TopOffersBarConfig() {
     loadSnippet();
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (!isSupabaseConfigured()) return;
-      const remote = await readModuleSettings<Config>(readMerchantId(), OFFERS_MODULE_NUM);
-      if (cancelled || !remote) return;
-      setConfig(normalizeTopOffersBar(remote));
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  // Live updates from other tabs/devices; unsaved edits always win.
-  useEffect(() => {
-    return subscribeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, (_num, settings) => {
-      if (dirty.current) return;
-      setConfig(normalizeTopOffersBar(settings));
-    });
-  }, []);
-
   function update(next: Config) {
-    dirty.current = true;
-    setConfig(next);
+    setDraft(next);
   }
 
   function updateText(index: number, message: string) {
@@ -140,17 +124,19 @@ export default function TopOffersBarConfig() {
 
   async function save() {
     const next = normalizeTopOffersBar(config);
-    setConfig(next);
-    dirty.current = false;
-    refreshPreview();
-    if (isSupabaseConfigured()) {
-      const ok = await writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
-      if (!ok) {
-        dirty.current = true;
-        show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
-        return;
-      }
+    if (!isSupabaseConfigured()) {
+      show("تعذّر الحفظ: إعدادات قاعدة البيانات غير مهيّأة", "warning", 4000);
+      return;
     }
+    const ok = await writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
+    if (!ok) {
+      setDraft(next);
+      show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
+      return;
+    }
+    setRow(next);
+    setDraft(null);
+    refreshPreview();
     show("تم الحفظ");
   }
 

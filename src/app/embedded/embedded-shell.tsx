@@ -7,13 +7,7 @@ import { embedded } from "@salla.sa/embedded-sdk";
 import { moduleNumbers, orderedModules } from "@/lib/modules";
 import { normalizeStoreUrl } from "@/lib/store-link";
 import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
-import {
-  isEnabled,
-  readModuleStates,
-  SETTINGS_CHANGED_EVENT,
-  subscribeModuleSettings,
-  type SettingsChangedDetail,
-} from "@/lib/settings";
+import SettingsProvider, { useSettings } from "@/components/settings-provider";
 import { Button, GhostButton, Modal, Spinner, TextInput } from "@/components/ui";
 
 type Status = "connecting" | "ready" | "error";
@@ -170,7 +164,6 @@ function Logo() {
 }
 
 export default function EmbeddedShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [status, setStatus] = useState<Status>("connecting");
   const [error, setError] = useState<string | null>(null);
   const [errorRaw, setErrorRaw] = useState<string | null>(null);
@@ -183,7 +176,6 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [storePromptOpen, setStorePromptOpen] = useState(false);
   const [storeInput, setStoreInput] = useState("");
-  const [moduleStates, setModuleStates] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -199,7 +191,6 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           setMerchantId(DEFAULT_MERCHANT_ID);
           setLocalPreview(true);
           setStoreUrl("/");
-          setModuleStates(await readModuleStates(DEFAULT_MERCHANT_ID));
           setStatus("ready");
           return;
         }
@@ -211,7 +202,6 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           setMerchantId(DEFAULT_MERCHANT_ID);
           try { sessionStorage.setItem("sallati.merchant-id", String(DEFAULT_MERCHANT_ID)); } catch { /* */ }
           setStoreUrl(await readStoreUrl(DEFAULT_MERCHANT_ID));
-          setModuleStates(await readModuleStates(DEFAULT_MERCHANT_ID));
           if (cancelled) return;
           setStatus("ready");
           return;
@@ -290,7 +280,6 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
         // Load the store link from Supabase (null on first install).
         const link = await readStoreUrl(result.merchantId);
         setStoreUrl(link);
-        setModuleStates(await readModuleStates(result.merchantId));
 
         // Then complete the host handshake (single-flight, no hard timeout).
         const { layout } = await initOnce();
@@ -329,36 +318,6 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
       clearTimeout(slowTimer);
     };
   }, []);
-
-  // Refresh the sidebar status dots whenever the merchant or route changes,
-  // and immediately when a module writes its settings.
-  useEffect(() => {
-    if (merchantId === null) return;
-    let cancelled = false;
-    void readModuleStates(merchantId).then((states) => {
-      if (!cancelled) setModuleStates(states);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [merchantId, pathname]);
-
-  useEffect(() => {
-    const onChange = (event: Event) => {
-      const detail = (event as CustomEvent<SettingsChangedDetail>).detail;
-      if (!detail) return;
-      setModuleStates((prev) => ({ ...prev, [detail.moduleNum]: detail.enabled }));
-    };
-    window.addEventListener(SETTINGS_CHANGED_EVENT, onChange);
-    return () => window.removeEventListener(SETTINGS_CHANGED_EVENT, onChange);
-  }, []);
-
-  // Live dot updates from other tabs/devices.
-  useEffect(() => {
-    return subscribeModuleSettings(merchantId, null, (moduleNum, settings) => {
-      setModuleStates((prev) => ({ ...prev, [moduleNum]: isEnabled(settings) }));
-    });
-  }, [merchantId]);
 
   useEffect(() => {
     const sync = () => setIsFullscreen(Boolean(document.fullscreenElement));
@@ -486,7 +445,8 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
   const ready = status === "ready";
 
   return (
-    <div className="relative flex h-dvh overflow-hidden bg-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <SettingsProvider key={merchantId ?? "anon"} merchantId={merchantId}>
+      <div className="relative flex h-dvh overflow-hidden bg-zinc-200 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <Modal
         open={storePromptOpen}
         onClose={() => setStorePromptOpen(false)}
@@ -548,35 +508,7 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-2">
-          <ul className="space-y-0.5">
-            {orderedModules.map((module) => {
-              const active = pathname === `/embedded/${module.slug}`;
-              const enabled = moduleStates[moduleNumbers[module.slug]] === true;
-              return (
-                <li key={module.slug}>
-                  <Link
-                    href={`/embedded/${module.slug}`}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active
-                        ? "bg-[#1781ae]/15 font-medium text-[#1781ae] dark:bg-[#1781ae]/20 dark:text-[#a4f0ed]"
-                        : "text-zinc-600 hover:bg-[#1781ae]/10 dark:text-zinc-400 dark:hover:bg-[#1781ae]/15"
-                    }`}
-                  >
-                    <span
-                      className={`size-2 shrink-0 rounded-full ${enabled ? dotOn : dotOff}`}
-                      title={enabled ? "مفعّل لهذا المتجر" : "غير مفعّل"}
-                      aria-label={enabled ? "مفعّل" : "غير مفعّل"}
-                    />
-                    <span className="min-w-0 flex-1 truncate">{module.name}</span>
-                    <span className="text-[11px] text-zinc-400">{moduleNumbers[module.slug]}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+        <ModuleNav onNavigate={() => setSidebarOpen(false)} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -668,7 +600,45 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
           )}
         </main>
       </div>
-    </div>
+      </div>
+    </SettingsProvider>
+  );
+}
+
+function ModuleNav({ onNavigate }: { onNavigate: () => void }) {
+  const pathname = usePathname();
+  const { states } = useSettings();
+
+  return (
+    <nav className="flex-1 overflow-y-auto p-2">
+      <ul className="space-y-0.5">
+        {orderedModules.map((module) => {
+          const active = pathname === `/embedded/${module.slug}`;
+          const enabled = states[moduleNumbers[module.slug]] === true;
+          return (
+            <li key={module.slug}>
+              <Link
+                href={`/embedded/${module.slug}`}
+                onClick={onNavigate}
+                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-[#1781ae]/15 font-medium text-[#1781ae] dark:bg-[#1781ae]/20 dark:text-[#a4f0ed]"
+                    : "text-zinc-600 hover:bg-[#1781ae]/10 dark:text-zinc-400 dark:hover:bg-[#1781ae]/15"
+                }`}
+              >
+                <span
+                  className={`size-2 shrink-0 rounded-full ${enabled ? dotOn : dotOff}`}
+                  title={enabled ? "مفعّل لهذا المتجر" : "غير مفعّل"}
+                  aria-label={enabled ? "مفعّل" : "غير مفعّل"}
+                />
+                <span className="min-w-0 flex-1 truncate">{module.name}</span>
+                <span className="text-[11px] text-zinc-400">{moduleNumbers[module.slug]}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 
