@@ -17,6 +17,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme {
+  /* Minimum text size is one step up from stock (15px instead of 14px). */
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5;
+
+  /* Muted text reads one shade darker in light mode. */
+  --color-zinc-400: #71717a;
+  --color-zinc-500: #52525b;
+}
+
+/* Keep the original luminance for dark mode so contrast does not drop. */
+.dark {
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-500: #a1a1aa;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
