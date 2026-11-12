@@ -23,7 +23,7 @@ export function clampAnimationSpeed(value: number): number {
 }
 
 export const DEFAULT_TOP_OFFERS_BAR: TopOffersBarConfig = {
-  enabled: true,
+  enabled: false,
   texts: [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }],
   color: "#000000",
   height: 46,

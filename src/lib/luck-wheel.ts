@@ -67,7 +67,7 @@ function defaultPrizes(): LuckWheelPrize[] {
 }
 
 export const DEFAULT_LUCK_WHEEL: LuckWheelConfig = {
-  enabled: true,
+  enabled: false,
   headline: "جرّب حظك واربح خصمًا!",
   description: "أدخل بريدك الإلكتروني ثم أدر العجلة لتعرف جائزتك.",
   buttonText: "أدر العجلة",
