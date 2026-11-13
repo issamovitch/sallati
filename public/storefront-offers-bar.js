@@ -97,6 +97,7 @@
     var fontSize = Number(cfg.fontSize) > 0 ? Number(cfg.fontSize) : 16;
     var fontFamily = cfg.fontFamily || "Cairo";
     var color = cfg.color || "#000000";
+    var textColor = cfg.textColor || "#ffffff";
 
     var slideMs = Number(cfg.animationSpeed);
     if (!(slideMs > 0)) slideMs = DEFAULT_SLIDE_MS;
@@ -112,7 +113,7 @@
       "position:fixed;top:0;left:0;right:0;z-index:9999;" +
       "height:" + height + "px;overflow:hidden;" +
       "font-family:'" + fontFamily + "',sans-serif;font-size:" + fontSize + "px;font-weight:600;" +
-      "color:#fff;background:" + color + ";" +
+      "color:" + textColor + ";background:" + color + ";" +
       "box-shadow:0 2px 8px rgba(0,0,0,.15);";
 
     var viewport = document.createElement("div");

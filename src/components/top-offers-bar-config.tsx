@@ -119,7 +119,7 @@ export default function TopOffersBarConfig() {
 
   function addText() {
     if (config.texts.length >= MAX_TEXTS) return;
-    update({ ...config, texts: [...config.texts, { message: "", duration: 5 }] });
+    update({ ...config, texts: [...config.texts, { message: "", duration: 8 }] });
   }
 
   function removeText(index: number) {
@@ -213,12 +213,20 @@ export default function TopOffersBarConfig() {
             />
           </Field>
 
-          <ColorField
-            label="لون الشريط"
-            value={config.color}
-            onChange={(color) => update({ ...config, color })}
-            pickerHeight={140}
-          />
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <ColorField
+              label="لون الشريط"
+              value={config.color}
+              onChange={(color) => update({ ...config, color })}
+              pickerHeight={140}
+            />
+            <ColorField
+              label="لون النص"
+              value={config.textColor}
+              onChange={(textColor) => update({ ...config, textColor })}
+              pickerHeight={140}
+            />
+          </div>
 
           <div className="mt-5 flex items-center justify-end gap-3">
             <Button type="button" onClick={save}>
@@ -258,9 +266,9 @@ export default function TopOffersBarConfig() {
                   type="number"
                   min={1}
                   max={3600}
-                  value={config.texts[0]?.duration ?? 5}
+                  value={config.texts[0]?.duration ?? 8}
                   onChange={(event) => {
-                    const duration = Math.max(1, Math.min(3600, Number(event.target.value) || 5));
+                    const duration = Math.max(1, Math.min(3600, Number(event.target.value) || 8));
                     update({ ...config, texts: config.texts.map((text) => ({ ...text, duration })) });
                   }}
                   className="mt-1 w-24 px-2 py-1 text-sm"

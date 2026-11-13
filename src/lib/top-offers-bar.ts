@@ -7,6 +7,7 @@ export type TopOffersBarConfig = {
   enabled: boolean;
   texts: TopOffersBarText[];
   color: string;
+  textColor: string;
   height: number;
   fontFamily: string;
   fontSize: number;
@@ -18,18 +19,19 @@ export const MIN_ANIMATION_SPEED = 100;
 export const MAX_ANIMATION_SPEED = 3000;
 
 export function clampAnimationSpeed(value: number): number {
-  if (!Number.isFinite(value)) return 500;
+  if (!Number.isFinite(value)) return 2000;
   return Math.max(MIN_ANIMATION_SPEED, Math.min(MAX_ANIMATION_SPEED, value));
 }
 
 export const DEFAULT_TOP_OFFERS_BAR: TopOffersBarConfig = {
   enabled: false,
-  texts: [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }],
+  texts: [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 8 }],
   color: "#000000",
+  textColor: "#ffffff",
   height: 46,
   fontFamily: "Cairo",
   fontSize: 16,
-  animationSpeed: 500,
+  animationSpeed: 2000,
 };
 
 export {
@@ -41,12 +43,12 @@ function normalizeTexts(raw: unknown): TopOffersBarText[] {
   if (Array.isArray(raw)) {
     const out = raw
       .map((t) => {
-        if (typeof t === "string") return { message: t, duration: 5 };
+        if (typeof t === "string") return { message: t, duration: 8 };
         if (t && typeof t === "object") {
           const o = t as { message?: unknown; duration?: unknown };
           return {
             message: typeof o.message === "string" ? o.message : "",
-            duration: typeof o.duration === "number" && o.duration >= 1 ? o.duration : 5,
+            duration: typeof o.duration === "number" && o.duration >= 1 ? o.duration : 8,
           };
         }
         return null;
@@ -57,9 +59,9 @@ function normalizeTexts(raw: unknown): TopOffersBarText[] {
   // Back-compat: old single `message` field.
   if (raw && typeof raw === "object" && "message" in (raw as object)) {
     const m = (raw as { message?: unknown }).message;
-    if (typeof m === "string") return [{ message: m, duration: 5 }];
+    if (typeof m === "string") return [{ message: m, duration: 8 }];
   }
-  return [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 5 }];
+  return [{ message: "شحن مجاني للطلبات فوق 200 ر.س", duration: 8 }];
 }
 
 export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
@@ -74,6 +76,10 @@ export function normalizeTopOffersBar(raw: unknown): TopOffersBarConfig {
       typeof parsed.color === "string" && parsed.color
         ? parsed.color
         : DEFAULT_TOP_OFFERS_BAR.color,
+    textColor:
+      typeof parsed.textColor === "string" && parsed.textColor
+        ? parsed.textColor
+        : DEFAULT_TOP_OFFERS_BAR.textColor,
     height:
       typeof parsed.height === "number" && parsed.height > 0
         ? parsed.height

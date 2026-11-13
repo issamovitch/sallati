@@ -75,6 +75,7 @@ export async function GET(request: Request) {
       texts,
       message: texts[0]?.message ?? "",
       color: s.color ?? DEFAULT_TOP_OFFERS_BAR.color,
+      textColor: s.textColor ?? DEFAULT_TOP_OFFERS_BAR.textColor,
       height: s.height ?? DEFAULT_TOP_OFFERS_BAR.height,
       fontFamily: s.fontFamily ?? DEFAULT_TOP_OFFERS_BAR.fontFamily,
       fontSize: s.fontSize ?? DEFAULT_TOP_OFFERS_BAR.fontSize,
