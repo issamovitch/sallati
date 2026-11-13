@@ -18,6 +18,7 @@ import {
 } from "@/lib/luck-wheel";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import { queuePendingSave, readMerchantId, takePendingSave, writeModuleSettings } from "@/lib/settings";
+import { readStoreUrl } from "@/lib/stores";
 import { embedded } from "@salla.sa/embedded-sdk";
 import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
@@ -73,7 +74,18 @@ export default function LuckWheelConfig() {
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
   const seq = useRef(0);
+  const [storeUrl, setStoreUrl] = useState<string | null>(null);
   const { show } = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+    void readStoreUrl(readMerchantId()).then((url) => {
+      if (!cancelled) setStoreUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Server row is the source of truth until the merchant edits something.
   const config = useMemo(
@@ -113,6 +125,21 @@ export default function LuckWheelConfig() {
 
   function update(next: Config) {
     setDraft(next);
+  }
+
+  /** Restores this card's fields to defaults; prizes and the toggle are kept. */
+  function resetWheelSettings() {
+    const defaults = DEFAULT_LUCK_WHEEL;
+    update({
+      ...config,
+      headline: defaults.headline,
+      description: defaults.description,
+      buttonText: defaults.buttonText,
+      spinDuration: defaults.spinDuration,
+      successText: defaults.successText,
+      fontFamily: defaults.fontFamily,
+      accentColor: defaults.accentColor,
+    });
   }
 
   function updatePrize(index: number, patch: Partial<LuckWheelPrize>) {
@@ -184,7 +211,16 @@ export default function LuckWheelConfig() {
   return (
     <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
       <div className="space-y-5">
-        <Card title="إعدادات العجلة">
+        <Card
+          title="إعدادات العجلة"
+          action={
+            <IconButton
+              icon={<HiArrowPath className="size-4" />}
+              label="استعادة الافتراضي"
+              onClick={resetWheelSettings}
+            />
+          }
+        >
           <ToggleRow
             title="تفعيل عجلة الحظ"
             description="إظهار نافذة العجلة في واجهة المتجر."
@@ -371,6 +407,64 @@ export default function LuckWheelConfig() {
           </div>
         </Card>
 
+              </div>
+
+      <div className="space-y-5">
+        <Card
+          title="معاينة"
+          action={
+            <IconButton
+              icon={<HiArrowPath className="size-4" />}
+              label="تحديث المعاينة"
+              onClick={refreshPreview}
+            />
+          }
+        >
+          <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
+            {!config.enabled ? (
+              <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
+                عجلة الحظ معطّلة
+              </div>
+            ) : snippet ? (
+              <iframe
+                key={previewKey}
+                ref={previewRef}
+                title="معاينة عجلة الحظ"
+                srcDoc={previewDoc}
+                onLoad={pushPreview}
+                style={{ height: 640, width: "100%", border: 0, display: "block" }}
+              />
+            ) : (
+              <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
+                جارٍ التحميل…
+              </div>
+            )}
+          </div>
+        </Card>
+
+        <Card title="كيف تعمل الجوائز؟">
+          <Hint className="text-sm leading-7">
+            الجوائز الحالية بكوبونات يدوية: أنت تنشئ الكوبون في سلة وتكتب كوده هنا، ثم
+            يظهر للزائر عند الفوز. هذا يعمل في أي متجر دون أي ربط إضافي.
+          </Hint>
+          <Hint className="mt-2 text-sm leading-7">
+            التوليد التلقائي لكوبون جديد لكل زائر يحتاج ربط OAuth بمتجر كل تاجر
+            (صلاحية الكوبونات)، وهو غير مفعّل بعد.
+          </Hint>
+
+          <div className="mt-4">
+            <LinkButton
+              type="button"
+              disabled={!storeUrl}
+              onClick={() => {
+                if (!storeUrl) return;
+                window.open(`${storeUrl}/admin/coupons`, "_blank", "noopener");
+              }}
+            >
+              فتح صفحة الكوبونات في لوحة سلة
+            </LinkButton>
+          </div>
+        </Card>
         <Card title="طريقة الظهور والجمع">
           <div className="space-y-4">
             <div>
@@ -451,51 +545,8 @@ export default function LuckWheelConfig() {
             </Button>
           </div>
         </Card>
-      </div>
 
-      <div className="space-y-5">
-        <Card
-          title="معاينة"
-          action={
-            <IconButton
-              icon={<HiArrowPath className="size-4" />}
-              label="تحديث المعاينة"
-              onClick={refreshPreview}
-            />
-          }
-        >
-          <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">
-            {!config.enabled ? (
-              <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                عجلة الحظ معطّلة
-              </div>
-            ) : snippet ? (
-              <iframe
-                key={previewKey}
-                ref={previewRef}
-                title="معاينة عجلة الحظ"
-                srcDoc={previewDoc}
-                onLoad={pushPreview}
-                style={{ height: 640, width: "100%", border: 0, display: "block" }}
-              />
-            ) : (
-              <div className="bg-zinc-100 px-3 py-2 text-center text-sm text-zinc-400 dark:bg-zinc-800">
-                جارٍ التحميل…
-              </div>
-            )}
-          </div>
-        </Card>
 
-        <Card title="كيف تعمل الجوائز؟">
-          <Hint className="text-sm leading-7">
-            الجوائز الحالية بكوبونات يدوية: أنت تنشئ الكوبون في سلة وتكتب كوده هنا، ثم
-            يظهر للزائر عند الفوز. هذا يعمل في أي متجر دون أي ربط إضافي.
-          </Hint>
-          <Hint className="mt-2 text-sm leading-7">
-            التوليد التلقائي لكوبون جديد لكل زائر يحتاج ربط OAuth بمتجر كل تاجر
-            (صلاحية الكوبونات)، وهو غير مفعّل بعد.
-          </Hint>
-        </Card>
       </div>
     </div>
   );
