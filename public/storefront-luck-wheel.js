@@ -242,22 +242,20 @@
       path.setAttribute("stroke-width", "0.8");
       svg.appendChild(path);
 
-      var flip = mid > 90 && mid < 270;
       var text = document.createElementNS(NS, "text");
       text.setAttribute("x", "100");
       text.setAttribute("y", "64");
-      text.setAttribute("text-anchor", flip ? "end" : "start");
+      text.setAttribute("text-anchor", "start");
       text.setAttribute("dominant-baseline", "middle");
       text.setAttribute("fill", contrast(prize.color));
       text.setAttribute("font-size", labelSize);
       text.setAttribute("font-weight", "700");
       text.setAttribute("font-family", "inherit");
       text.setAttribute("pointer-events", "none");
-      // Radial labels: each name runs outward from the hub along its spoke.
+      // Radial labels: baseline always points outward from the hub.
       text.setAttribute(
         "transform",
-        "rotate(" + mid + " 100 100)" +
-          " rotate(" + (flip ? 90 : -90) + " 100 64)"
+        "rotate(" + mid + " 100 100) rotate(-90 100 64)"
       );
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
