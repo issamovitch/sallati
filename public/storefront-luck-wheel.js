@@ -260,6 +260,14 @@
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
 
+      // Guarantee the name ends before the rim instead of being clipped.
+      try {
+        if (text.getComputedTextLength() > 40) {
+          text.setAttribute("textLength", "40");
+          text.setAttribute("lengthAdjust", "spacingAndGlyphs");
+        }
+      } catch (e) {}
+
       segments.push({ prize: prize, start: start, end: end, mid: mid, size: size });
       angle = end;
     });
