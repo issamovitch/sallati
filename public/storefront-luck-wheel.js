@@ -227,7 +227,7 @@
     var segments = [];
     var angle = 0;
     var labelSize = prizes.length <= 6 ? "10" : prizes.length <= 8 ? "9" : "8";
-    var maxChars = prizes.length <= 6 ? 12 : prizes.length <= 8 ? 9 : 7;
+    var maxChars = prizes.length <= 6 ? 9 : prizes.length <= 8 ? 7 : 6;
 
     prizes.forEach(function (prize) {
       var size = (prize.weight / total) * 360;
@@ -244,7 +244,7 @@
 
       var text = document.createElementNS(NS, "text");
       text.setAttribute("x", "100");
-      text.setAttribute("y", "64");
+      text.setAttribute("y", "52");
       text.setAttribute("text-anchor", "start");
       text.setAttribute("dominant-baseline", "middle");
       text.setAttribute("fill", contrast(prize.color));
