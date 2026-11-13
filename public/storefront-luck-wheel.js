@@ -242,9 +242,12 @@
       path.setAttribute("stroke-width", "0.8");
       svg.appendChild(path);
 
+      var rad = ((mid - 90) * Math.PI) / 180;
+      var lx = 100 + 92 * Math.cos(rad);
+      var ly = 100 + 92 * Math.sin(rad);
       var text = document.createElementNS(NS, "text");
-      text.setAttribute("x", "100");
-      text.setAttribute("y", "8");
+      text.setAttribute("x", lx.toFixed(2));
+      text.setAttribute("y", ly.toFixed(2));
       text.setAttribute("text-anchor", "start");
       text.setAttribute("dominant-baseline", "middle");
       text.setAttribute("fill", contrast(prize.color));
@@ -252,10 +255,10 @@
       text.setAttribute("font-weight", "700");
       text.setAttribute("font-family", "inherit");
       text.setAttribute("pointer-events", "none");
-      // Names start near the rim and read inward towards the hub.
+      // Anchored on the outer border, baseline points to the hub.
       text.setAttribute(
         "transform",
-        "rotate(" + mid + " 100 100) rotate(90 100 8)"
+        "rotate(" + (mid + 90) + " " + lx.toFixed(2) + " " + ly.toFixed(2) + ")"
       );
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
