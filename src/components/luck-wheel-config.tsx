@@ -221,7 +221,7 @@ export default function LuckWheelConfig() {
         ...config.prizes,
         {
           id: `coupon-${coupon.id}`,
-          label: coupon.code,
+          label: couponLabel(coupon),
           weight: 10,
           couponCode: coupon.code,
           color: LUCK_WHEEL_PALETTE[index % LUCK_WHEEL_PALETTE.length],
