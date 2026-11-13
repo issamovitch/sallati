@@ -1,7 +1,5 @@
 import { readSessionToken } from "@/lib/settings";
 
-export type StoreRow = { merchant_id: number; store_url: string | null };
-
 function mid(merchantId: number | null) {
   return merchantId ?? 0;
 }

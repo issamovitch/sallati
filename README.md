@@ -1,55 +1,37 @@
-# Sallati
+# Sallati (سلتي)
 
-Minimal Salla embedded app. Next.js 16 (App Router) + Tailwind + `@salla.sa/embedded-sdk`.
+Salla embedded app (Arabic, RTL) with storefront modules. Next.js 16 App Router + Tailwind + `@salla.sa/embedded-sdk`.
 
 ## Run
 
 ```powershell
 npm install
-Copy-Item .env.example .env.local
+Copy-Item .env.example .env.local   # fill in the values
 npm run dev
 ```
 
-## Tunnel (Salla must reach your machine)
+Local preview: http://localhost:3000/embedded (`/` redirects there).
+
+## Architecture rules
+
+1. The browser never talks to the database and never receives a secret. Every read/write goes through our API routes, which verify the Salla session and use the service role server-side.
+2. No public RLS policies on any table.
+3. Freshness is server-driven: settings are refetched after a save and when the tab regains focus. No websockets, no polling timers.
+
+See `AGENTS.md` for the full rules.
+
+## Deploy
 
 ```powershell
-.\.tools\cloudflared.exe tunnel --url http://localhost:3000 --no-autoupdate
+vercel --prod
 ```
 
-Use the `https://*.trycloudflare.com` URL it prints. Do not use free ngrok: its
-interstitial page breaks iframes.
+Environment variables live in Vercel (Production + Preview). `SALLA_CLIENT_SECRET`,
+`SALLA_WEBHOOK_SECRET` and `SUPABASE_SERVICE_ROLE_KEY` are server-only.
 
-## Connect it to the demo store
+## Salla setup
 
-1. Partners Portal -> **My Apps** -> your app -> **Embedded Pages** -> Add:
-   - **Route Slug**: `sallati`
-   - **Iframe URL**: `https://<tunnel>/embedded`
-   - **Default Page**: on
-2. **App Testing** -> **Install App** on your demo store (skip if installed).
-3. Demo store dashboard -> **Apps** -> Sallati -> **Use App**.
-4. Copy the **App ID** into `.env.local` as `SALLA_APP_ID`, then restart `npm run dev`.
-
-## Routes
-
-| Route | Purpose |
-| --- | --- |
-| `/` | Status + env checklist |
-| `/embedded` | Iframe UI; needs `?token=` from Salla |
-| `/api/health` | Uptime/tunnel check |
-| `POST /api/embedded/session` | Verifies the token via Salla introspection |
-| `GET /api/store/link` | Returns the storefront URL for a merchant (cached from OAuth) |
-| `POST /webhooks/salla` | HMAC-verified app events; stores OAuth tokens + store link |
-
-## Store link (Preview button)
-
-The embedded session token cannot read store details. The storefront URL is
-discovered after Easy Mode sends `app.store.authorize` to
-`<NEXT_PUBLIC_APP_URL>/webhooks/salla`:
-
-1. Set `SALLA_WEBHOOK_SECRET` and register that webhook URL in the Partners Portal.
-2. Reinstall the app on the demo store so Salla emits `app.store.authorize`.
-3. The webhook stores the OAuth token in `.data/stores.json` and resolves the
-   store link via `GET https://api.salla.dev/admin/v2/stores/{merchant_id}`.
-
-`NEXT_PUBLIC_STORE_URL` overrides discovery. If neither is available, the
-Preview button asks for the link once and saves it in the browser.
+1. Partners Portal → My Apps → your app → **Embedded Pages**: slug `sallati`, iframe URL `<APP_URL>/embedded`, default page on.
+2. **Webhooks**: `<APP_URL>/webhooks/salla`, strategy **Token**; app events `app.store.authorize` + `app.uninstalled`.
+3. **App Snippet**: paste `public/sallati-loader.js` (JS only, no HTML).
+4. Install on the demo store; tokens are stored encrypted in `public.stores`.

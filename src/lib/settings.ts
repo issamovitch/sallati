@@ -1,14 +1,3 @@
-export const SETTINGS_TABLE = "settings";
-
-export type ModuleSettingsRow = {
-  id: number;
-  merchant_id: number;
-  module_num: number;
-  settings: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-};
-
 export function readMerchantId(): number | null {
   try {
     const raw = sessionStorage.getItem("sallati.merchant-id");
