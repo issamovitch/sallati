@@ -56,7 +56,7 @@ function buildPreviewDoc(snippet: string) {
 }
 
 export default function TopOffersBarConfig() {
-  const { settings: remote, setRow } = useModuleConfig(OFFERS_MODULE_NUM);
+  const { settings: remote, reload } = useModuleConfig(OFFERS_MODULE_NUM);
   const [draft, setDraft] = useState<Config | null>(null);
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
@@ -129,7 +129,7 @@ export default function TopOffersBarConfig() {
       show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
       return;
     }
-    setRow(next);
+    await reload();
     setDraft(null);
     refreshPreview();
     show("تم الحفظ");

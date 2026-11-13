@@ -62,7 +62,7 @@ function buildPreviewDoc(snippet: string) {
 }
 
 export default function LuckWheelConfig() {
-  const { settings: remote, setRow } = useModuleConfig(LUCK_WHEEL_MODULE_NUM);
+  const { settings: remote, reload } = useModuleConfig(LUCK_WHEEL_MODULE_NUM);
   const [draft, setDraft] = useState<Config | null>(null);
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
@@ -148,7 +148,7 @@ export default function LuckWheelConfig() {
       show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
       return;
     }
-    setRow(next);
+    await reload();
     setDraft(null);
     refreshPreview();
     show("تم الحفظ");

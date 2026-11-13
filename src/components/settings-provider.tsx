@@ -13,34 +13,28 @@ import { isEnabled, readMerchantSettings } from "@/lib/settings";
 type SettingsContextValue = {
   rows: Record<number, unknown>;
   states: Record<number, boolean>;
-  setRow: (moduleNum: number, settings: unknown) => void;
+  reload: () => Promise<void>;
 };
 
 const SettingsContext = createContext<SettingsContextValue>({
   rows: {},
   states: {},
-  setRow: () => {},
+  reload: async () => {},
 });
 
 export function useSettings() {
   return useContext(SettingsContext);
 }
 
-/** Server value for one module plus the optimistic setter. */
+/** Server value for one module plus the shared reload. */
 export function useModuleConfig(moduleNum: number) {
-  const { rows, setRow } = useSettings();
-  const setModuleRow = useCallback(
-    (settings: unknown) => setRow(moduleNum, settings),
-    [moduleNum, setRow],
-  );
-  return { settings: rows[moduleNum], setRow: setModuleRow };
+  const { rows, reload } = useSettings();
+  return { settings: rows[moduleNum], reload };
 }
 
-const POLL_MS = 5000;
-
 /**
- * All reads come from our own API (Salla-token verified). Freshness is a light
- * poll while the tab is visible, plus a refetch on focus and after saves.
+ * All reads come from our own API (Salla-token verified). Refetch happens on
+ * mount, after a save, and when the tab regains focus — no timers, no sockets.
  */
 export default function SettingsProvider({
   merchantId,
@@ -51,36 +45,37 @@ export default function SettingsProvider({
 }) {
   const [rows, setRows] = useState<Record<number, unknown>>({});
 
-  const setRow = useCallback((moduleNum: number, settings: unknown) => {
-    setRows((prev) => ({ ...prev, [moduleNum]: settings }));
-  }, []);
-
-  const reload = useCallback(() => {
+  const reload = useCallback(async () => {
     if (merchantId === null) return;
-    void readMerchantSettings(merchantId).then(setRows);
+    const next = await readMerchantSettings(merchantId);
+    setRows(next);
   }, [merchantId]);
 
   useEffect(() => {
     if (merchantId === null) return;
-    reload();
+    let cancelled = false;
 
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === "visible") reload();
-    }, POLL_MS);
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") reload();
+    const load = () => {
+      void readMerchantSettings(merchantId).then((next) => {
+        if (!cancelled) setRows(next);
+      });
     };
 
-    window.addEventListener("focus", reload);
+    load();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+
+    window.addEventListener("focus", onVisible);
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("focus", reload);
+      cancelled = true;
+      window.removeEventListener("focus", onVisible);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [merchantId, reload]);
+  }, [merchantId]);
 
   const states = useMemo(() => {
     const next: Record<number, boolean> = {};
@@ -90,7 +85,7 @@ export default function SettingsProvider({
     return next;
   }, [rows]);
 
-  const value = useMemo(() => ({ rows, states, setRow }), [rows, states, setRow]);
+  const value = useMemo(() => ({ rows, states, reload }), [rows, states, reload]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
