@@ -244,8 +244,8 @@
 
       var text = document.createElementNS(NS, "text");
       text.setAttribute("x", "100");
-      text.setAttribute("y", "52");
-      text.setAttribute("text-anchor", "end");
+      text.setAttribute("y", "8");
+      text.setAttribute("text-anchor", "start");
       text.setAttribute("dominant-baseline", "middle");
       text.setAttribute("fill", contrast(prize.color));
       text.setAttribute("font-size", labelSize);
@@ -255,7 +255,7 @@
       // Names start near the rim and read inward towards the hub.
       text.setAttribute(
         "transform",
-        "rotate(" + mid + " 100 100) rotate(90 100 52)"
+        "rotate(" + mid + " 100 100) rotate(90 100 8)"
       );
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
