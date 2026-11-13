@@ -29,7 +29,7 @@ import {
   DangerButton,
   Field,
   FontSelect,
-  GhostButton,
+  IconButton,
   Hint,
   LinkButton,
   TextInput,
@@ -457,16 +457,11 @@ export default function LuckWheelConfig() {
         <Card
           title="معاينة"
           action={
-            <GhostButton
-              type="button"
-              size="sm"
+            <IconButton
+              icon={<HiArrowPath className="size-4" />}
+              label="تحديث المعاينة"
               onClick={refreshPreview}
-              aria-label="تحديث المعاينة"
-              title="تحديث المعاينة"
-              className="!px-2 !py-1"
-            >
-              <HiArrowPath className="size-4" />
-            </GhostButton>
+            />
           }
         >
           <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">

@@ -22,7 +22,7 @@ import {
   DangerButton,
   Field,
   FontSelect,
-  GhostButton,
+  IconButton,
   LinkButton,
   TextInput,
   ToggleRow,
@@ -111,12 +111,11 @@ export default function TopOffersBarConfig() {
     setDraft(next);
   }
 
-  /** Restores this card's fields to defaults; the texts card is untouched. */
+  /** Restores this card's fields to defaults; texts and the toggle are kept. */
   function resetBarSettings() {
     const defaults = DEFAULT_TOP_OFFERS_BAR;
     update({
       ...config,
-      enabled: defaults.enabled,
       height: defaults.height,
       fontFamily: defaults.fontFamily,
       fontSize: defaults.fontSize,
@@ -186,15 +185,11 @@ export default function TopOffersBarConfig() {
         <Card
           title="إعدادات الشريط"
           action={
-            <button
-              type="button"
+            <IconButton
+              icon={<HiArrowPath className="size-4" />}
+              label="استعادة الافتراضي"
               onClick={resetBarSettings}
-              title="استعادة الافتراضي"
-              aria-label="استعادة الافتراضي"
-              className="grid size-8 place-items-center rounded-lg border border-black/10 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:border-white/15 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-            >
-              <HiArrowPath className="size-4" />
-            </button>
+            />
           }
         >
           <ToggleRow
@@ -339,16 +334,11 @@ export default function TopOffersBarConfig() {
         <Card
           title="معاينة"
           action={
-            <GhostButton
-              type="button"
-              size="sm"
+            <IconButton
+              icon={<HiArrowPath className="size-4" />}
+              label="تحديث المعاينة"
               onClick={refreshPreview}
-              aria-label="تحديث المعاينة"
-              title="تحديث المعاينة"
-              className="!px-2 !py-1"
-            >
-              <HiArrowPath className="size-4" />
-            </GhostButton>
+            />
           }
         >
           <div className="mt-2 overflow-hidden border border-black/10 dark:border-white/10">

@@ -13,5 +13,6 @@ export { default as Wysiwyg } from "./wysiwyg";
 export { TextInput, Select } from "./input";
 export { default as FontSelect } from "./font-select";
 export { Button, GhostButton, LinkButton, DangerButton } from "./button";
+export { default as IconButton } from "./icon-button";
 export { useToast } from "./toast";
 export type { ToastKind } from "./toast";
