@@ -199,7 +199,7 @@
       openOnExit: cfg.openOnExit !== false,
       openOnButton: cfg.openOnButton !== false,
       oncePerVisitor: cfg.oncePerVisitor !== false,
-      requireEmail: cfg.requireEmail !== false,
+      requireEmail: cfg.requireEmail === true,
       emailPlaceholder: String(cfg.emailPlaceholder || "بريدك الإلكتروني").slice(0, 60)
     };
   }
@@ -424,7 +424,7 @@
     var spinBtn = document.createElement("button");
     spinBtn.type = "button";
     spinBtn.className = "slw-spin";
-    spinBtn.textContent = cfg.buttonText;
+    spinBtn.textContent = cfg.buttonText || "أدر العجلة";
     stage.appendChild(spinBtn);
 
     var form = document.createElement("form");
@@ -511,13 +511,8 @@
     }
 
     function updateEmailGate() {
-      if (!cfg.requireEmail || currentEmail) {
-        form.style.display = "none";
-        setSpinEnabled(true);
-      } else {
-        form.style.display = "flex";
-        setSpinEnabled(false);
-      }
+      // The wheel button stays visible and clickable; the email is validated on spin.
+      form.style.display = !cfg.requireEmail || currentEmail ? "none" : "flex";
     }
 
     function openPopup() {

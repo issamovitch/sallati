@@ -81,7 +81,7 @@ export const DEFAULT_LUCK_WHEEL: LuckWheelConfig = {
   openOnExit: true,
   openOnButton: true,
   oncePerVisitor: true,
-  requireEmail: true,
+  requireEmail: false,
   emailPlaceholder: "بريدك الإلكتروني",
 };
 
