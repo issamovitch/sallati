@@ -245,17 +245,17 @@
       var text = document.createElementNS(NS, "text");
       text.setAttribute("x", "100");
       text.setAttribute("y", "52");
-      text.setAttribute("text-anchor", "start");
+      text.setAttribute("text-anchor", "end");
       text.setAttribute("dominant-baseline", "middle");
       text.setAttribute("fill", contrast(prize.color));
       text.setAttribute("font-size", labelSize);
       text.setAttribute("font-weight", "700");
       text.setAttribute("font-family", "inherit");
       text.setAttribute("pointer-events", "none");
-      // Radial labels: baseline always points outward from the hub.
+      // Names start near the rim and read inward towards the hub.
       text.setAttribute(
         "transform",
-        "rotate(" + mid + " 100 100) rotate(-90 100 52)"
+        "rotate(" + mid + " 100 100) rotate(90 100 52)"
       );
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
