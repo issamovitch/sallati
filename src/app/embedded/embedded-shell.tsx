@@ -8,7 +8,7 @@ import { moduleNumbers, orderedModules } from "@/lib/modules";
 import { normalizeStoreUrl } from "@/lib/store-link";
 import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
 import SettingsProvider, { useSettings } from "@/components/settings-provider";
-import { Button, GhostButton, Modal, Spinner, TextInput } from "@/components/ui";
+import { Button, GhostButton, HeaderButton, Modal, Spinner, TextInput } from "@/components/ui";
 
 type Status = "connecting" | "ready" | "error";
 
@@ -150,6 +150,7 @@ const icons = {
   shrink: "M8 3v3a2 2 0 0 1-2 2H3M16 3v3a2 2 0 0 0 2 2h3M8 21v-3a2 2 0 0 0-2-2H3M16 21v-3a2 2 0 0 1 2-2h3",
   close: "M6 6l12 12M18 6L6 18",
   preview: "M14 3h7v7M21 3l-9 9M19 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5",
+  refresh: "M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6",
 };
 
 function Logo() {
@@ -348,6 +349,10 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
     } catch {
       /* storage unavailable */
     }
+    window.location.reload();
+  }, []);
+
+  const reloadApp = useCallback(() => {
     window.location.reload();
   }, []);
 
@@ -554,26 +559,24 @@ export default function EmbeddedShell({ children }: { children: React.ReactNode 
               </span>
             )}
 
-            <button
-              type="button"
+            <HeaderButton
+              icon={<Icon path={icons.preview} className="size-4" />}
+              label="معاينة"
+              title="معاينة المتجر في نافذة جديدة"
               onClick={openStorePreview}
-              title="معاينة المتجر"
-              aria-label="معاينة المتجر في نافذة جديدة"
-              className="flex h-9 items-center gap-2 rounded-lg border border-black/10 px-2.5 text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              <Icon path={icons.preview} className="size-4" />
-              <span className="hidden text-sm font-medium sm:inline">معاينة</span>
-            </button>
+            />
 
-            <button
-              type="button"
-              onClick={toggleFullscreen}
+            <HeaderButton
+              icon={<Icon path={icons.refresh} className="size-4" />}
+              title="تحديث الصفحة"
+              onClick={reloadApp}
+            />
+
+            <HeaderButton
+              icon={<Icon path={isFullscreen ? icons.shrink : icons.expand} className="size-5" />}
               title={isFullscreen ? "إنهاء ملء الشاشة" : "ملء الشاشة"}
-              aria-label={isFullscreen ? "إنهاء ملء الشاشة" : "ملء الشاشة"}
-              className="grid size-9 place-items-center rounded-lg border border-black/10 text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              <Icon path={isFullscreen ? icons.shrink : icons.expand} />
-            </button>
+              onClick={toggleFullscreen}
+            />
           </div>
         </header>
 

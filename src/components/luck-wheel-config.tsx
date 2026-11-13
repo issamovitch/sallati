@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HiArrowPath } from "react-icons/hi2";
+import { HiArrowPath, HiArrowTopRightOnSquare } from "react-icons/hi2";
 import {
   DEFAULT_LUCK_WHEEL,
   LUCK_WHEEL_PALETTE,
@@ -18,7 +18,6 @@ import {
 } from "@/lib/luck-wheel";
 import { FONT_OPTIONS } from "@/lib/fonts";
 import { queuePendingSave, readMerchantId, readSessionToken, takePendingSave, writeModuleSettings } from "@/lib/settings";
-import { readStoreUrl } from "@/lib/stores";
 import { embedded } from "@salla.sa/embedded-sdk";
 import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
@@ -38,6 +37,7 @@ import {
 } from "@/components/ui";
 
 const LUCK_WHEEL_MODULE_NUM = moduleNumbers["luck-wheel"] ?? 2;
+const COUPONS_PAGE = "https://s.salla.sa/marketing/coupons";
 
 type Coupon = {
   id: string;
@@ -89,7 +89,6 @@ export default function LuckWheelConfig() {
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
-  const [storeUrl, setStoreUrl] = useState<string | null>(null);
   const [coupons, setCoupons] = useState<Coupon[] | null>(null);
   const { show } = useToast();
 
@@ -115,16 +114,6 @@ export default function LuckWheelConfig() {
     let cancelled = false;
     void fetchCoupons().then((list) => {
       if (!cancelled) setCoupons(list);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    void readStoreUrl(readMerchantId()).then((url) => {
-      if (!cancelled) setStoreUrl(url);
     });
     return () => {
       cancelled = true;
@@ -498,12 +487,12 @@ export default function LuckWheelConfig() {
           <div className="mt-4">
             <LinkButton
               type="button"
-              disabled={!storeUrl}
               onClick={() => {
-                if (!storeUrl) return;
-                window.open(`${storeUrl}/admin/coupons`, "_blank", "noopener");
+                window.open(COUPONS_PAGE, "_blank", "noopener");
               }}
+              className="inline-flex items-center gap-1.5"
             >
+              <HiArrowTopRightOnSquare className="size-4" />
               فتح صفحة الكوبونات في لوحة سلة
             </LinkButton>
           </div>
