@@ -111,6 +111,21 @@ export default function TopOffersBarConfig() {
     setDraft(next);
   }
 
+  /** Restores this card's fields to defaults; the texts card is untouched. */
+  function resetBarSettings() {
+    const defaults = DEFAULT_TOP_OFFERS_BAR;
+    update({
+      ...config,
+      enabled: defaults.enabled,
+      height: defaults.height,
+      fontFamily: defaults.fontFamily,
+      fontSize: defaults.fontSize,
+      color: defaults.color,
+      textColor: defaults.textColor,
+      animationSpeed: defaults.animationSpeed,
+    });
+  }
+
   function updateText(index: number, message: string) {
     const texts = [...config.texts];
     texts[index] = { ...texts[index], message };
@@ -168,7 +183,20 @@ export default function TopOffersBarConfig() {
   return (
     <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
       <div className="space-y-5">
-        <Card title="إعدادات الشريط">
+        <Card
+          title="إعدادات الشريط"
+          action={
+            <button
+              type="button"
+              onClick={resetBarSettings}
+              title="استعادة الافتراضي"
+              aria-label="استعادة الافتراضي"
+              className="grid size-8 place-items-center rounded-lg border border-black/10 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:border-white/15 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            >
+              <HiArrowPath className="size-4" />
+            </button>
+          }
+        >
           <ToggleRow
             title="تفعيل الشريط"
             description="إظهار شريط العروض أعلى واجهة المتجر."
