@@ -9,9 +9,6 @@ const nextConfig: NextConfig = {
     // The Partners Portal may point at /hooks; keep both paths on the same handler.
     return [{ source: "/hooks", destination: "/webhooks/salla" }];
   },
-  async redirects() {
-    return [{ source: "/", destination: "/embedded", permanent: false }];
-  },
   turbopack: {
     rules: {
       "*.css": {
