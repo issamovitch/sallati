@@ -72,7 +72,7 @@
       "background:rgba(7,13,66,.62);direction:rtl;}" +
       "#" + OVERLAY_ID + ",#" + OVERLAY_ID + " *{box-sizing:border-box;}" +
       "#" + OVERLAY_ID + " .slw-card{position:relative;width:min(94vw,400px);max-height:92vh;" +
-      "overflow:auto;background:#fff;border-radius:20px;padding:24px 18px 18px;" +
+      "overflow-y:auto;overflow-x:hidden;background:#fff;border-radius:20px;padding:24px 18px 18px;" +
       "box-shadow:0 24px 60px rgba(0,0,0,.35);text-align:center;}" +
       "#" + OVERLAY_ID + " .slw-close{position:absolute;top:10px;left:10px;width:32px;" +
       "height:32px;padding:0;border:0;border-radius:50%;background:#f1f5f9;color:#475569;" +
@@ -81,10 +81,10 @@
       "color:#0f172a;line-height:1.45;}" +
       "#" + OVERLAY_ID + " .slw-desc{margin:0 0 14px;font-size:14px;color:#64748b;line-height:1.7;}" +
       "#" + OVERLAY_ID + " .slw-stage{position:relative;width:min(76vw,290px);max-width:100%;" +
-      "aspect-ratio:1/1;margin:0 auto;}" +
+      "aspect-ratio:1/1;margin:0 auto;overflow:hidden;}" +
       "#" + OVERLAY_ID + " .slw-rotor{position:absolute;inset:0;transform-origin:50% 50%;" +
       "will-change:transform;}" +
-      "#" + OVERLAY_ID + " .slw-pointer{position:absolute;top:-6px;left:50%;" +
+      "#" + OVERLAY_ID + " .slw-pointer{position:absolute;top:0;left:50%;" +
       "transform:translateX(-50%);z-index:3;width:0;height:0;" +
       "border-left:11px solid transparent;border-right:11px solid transparent;" +
       "border-top:20px solid var(--slw-accent,#1781ae);" +
@@ -245,17 +245,19 @@
       var flip = mid > 90 && mid < 270;
       var text = document.createElementNS(NS, "text");
       text.setAttribute("x", "100");
-      text.setAttribute("y", "42");
-      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("y", "64");
+      text.setAttribute("text-anchor", flip ? "end" : "start");
       text.setAttribute("dominant-baseline", "middle");
       text.setAttribute("fill", contrast(prize.color));
       text.setAttribute("font-size", labelSize);
       text.setAttribute("font-weight", "700");
       text.setAttribute("font-family", "inherit");
       text.setAttribute("pointer-events", "none");
+      // Radial labels: each name runs outward from the hub along its spoke.
       text.setAttribute(
         "transform",
-        "rotate(" + mid + " 100 100)" + (flip ? " rotate(180 100 42)" : "")
+        "rotate(" + mid + " 100 100)" +
+          " rotate(" + (flip ? 90 : -90) + " 100 64)"
       );
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
