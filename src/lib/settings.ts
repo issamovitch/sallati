@@ -1,5 +1,3 @@
-import { createSupabaseServerClient, getSupabaseBrowserClient } from "@/lib/supabase";
-
 export const SETTINGS_TABLE = "settings";
 
 export type ModuleSettingsRow = {
@@ -10,15 +8,6 @@ export type ModuleSettingsRow = {
   created_at: string;
   updated_at: string;
 };
-
-function client() {
-  if (typeof window === "undefined") return createSupabaseServerClient();
-  return getSupabaseBrowserClient();
-}
-
-function mid(merchantId: number | null) {
-  return merchantId ?? 0;
-}
 
 export function readMerchantId(): number | null {
   try {
@@ -38,22 +27,6 @@ export function readSessionToken(): string {
   } catch {
     return "";
   }
-}
-
-export async function readModuleSettings<T>(
-  merchantId: number | null,
-  moduleNum: number,
-): Promise<T | null> {
-  const supabase = client();
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from(SETTINGS_TABLE)
-    .select("settings")
-    .eq("merchant_id", mid(merchantId))
-    .eq("module_num", moduleNum)
-    .maybeSingle();
-  if (error || !data) return null;
-  return (data.settings ?? null) as T | null;
 }
 
 /**
@@ -116,36 +89,4 @@ export async function readMerchantSettings(
   } catch {
     return {};
   }
-}
-
-/**
- * Broadcast ping (no table access). The server publishes after each write;
- * clients refetch. Reconnects also resync, since pings are not replayed.
- */
-export function subscribeMerchantSettings(
-  merchantId: number | null,
-  handlers: {
-    onRow: (moduleNum: number, settings: unknown) => void;
-    onResync: () => void;
-  },
-): () => void {
-  const supabase = client();
-  if (!supabase || merchantId === null) return () => {};
-
-  let joined = false;
-
-  const channel = supabase
-    .channel(`settings:${merchantId}`)
-    .on("broadcast", { event: "updated" }, () => {
-      handlers.onResync();
-    })
-    .subscribe((status) => {
-      if (status !== "SUBSCRIBED") return;
-      if (joined) handlers.onResync();
-      joined = true;
-    });
-
-  return () => {
-    void supabase.removeChannel(channel);
-  };
 }

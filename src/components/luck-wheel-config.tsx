@@ -17,7 +17,6 @@ import {
   type LuckWheelPrize,
 } from "@/lib/luck-wheel";
 import { FONT_OPTIONS } from "@/lib/fonts";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import { readMerchantId, writeModuleSettings } from "@/lib/settings";
 import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
@@ -143,10 +142,6 @@ export default function LuckWheelConfig() {
 
   async function save() {
     const next = normalizeLuckWheel(config);
-    if (!isSupabaseConfigured()) {
-      show("تعذّر الحفظ: إعدادات قاعدة البيانات غير مهيّأة", "warning", 4000);
-      return;
-    }
     const ok = await writeModuleSettings(readMerchantId(), LUCK_WHEEL_MODULE_NUM, next);
     if (!ok) {
       setDraft(next);

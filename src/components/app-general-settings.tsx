@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { normalizeStoreUrl } from "@/lib/store-link";
 import { readStoreUrl, saveStoreUrl } from "@/lib/stores";
 import { readMerchantId } from "@/lib/settings";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import { Button, Card, Field, Hint, Page, TextInput, useToast } from "@/components/ui";
 import StoreLinkCard from "@/components/store-link-card";
 
@@ -62,12 +61,6 @@ export default function AppGeneralSettings() {
               حفظ
             </Button>
           </div>
-
-          {!isSupabaseConfigured() && (
-            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400">
-              Supabase غير مهيّأ — سيتم الحفظ محليًا فقط.
-            </p>
-          )}
         </Card>
       </div>
     </Page>

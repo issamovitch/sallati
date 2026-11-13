@@ -8,25 +8,7 @@ export function supabaseCredentials(): SupabaseCredentials | null {
   return url && key ? { url, key } : null;
 }
 
-export function isSupabaseConfigured(): boolean {
-  return supabaseCredentials() !== null;
-}
-
-// Browser client (singleton, no auth session persistence).
-let browserClient: SupabaseClient | null = null;
-
-export function getSupabaseBrowserClient(): SupabaseClient | null {
-  const creds = supabaseCredentials();
-  if (!creds) return null;
-  if (!browserClient) {
-    browserClient = createClient(creds.url, creds.key, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    });
-  }
-  return browserClient;
-}
-
-// Stateless client for server code (route handlers, webhooks).
+// Server-only client. The browser never talks to the database anymore.
 export function createSupabaseServerClient(): SupabaseClient | null {
   const creds = supabaseCredentials();
   if (!creds) return null;

@@ -8,11 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import {
-  isEnabled,
-  readMerchantSettings,
-  subscribeMerchantSettings,
-} from "@/lib/settings";
+import { isEnabled, readMerchantSettings } from "@/lib/settings";
 
 type SettingsContextValue = {
   rows: Record<number, unknown>;
@@ -40,9 +36,11 @@ export function useModuleConfig(moduleNum: number) {
   return { settings: rows[moduleNum], setRow: setModuleRow };
 }
 
+const POLL_MS = 5000;
+
 /**
- * Single query on mount, then Realtime. Remounting is keyed by `merchantId`
- * (see the shell), so switching stores starts from a clean map.
+ * All reads come from our own API (Salla-token verified). Freshness is a light
+ * poll while the tab is visible, plus a refetch on focus and after saves.
  */
 export default function SettingsProvider({
   merchantId,
@@ -58,14 +56,31 @@ export default function SettingsProvider({
   }, []);
 
   const reload = useCallback(() => {
+    if (merchantId === null) return;
     void readMerchantSettings(merchantId).then(setRows);
   }, [merchantId]);
 
   useEffect(() => {
     if (merchantId === null) return;
     reload();
-    return subscribeMerchantSettings(merchantId, { onRow: setRow, onResync: reload });
-  }, [merchantId, reload, setRow]);
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") reload();
+    }, POLL_MS);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") reload();
+    };
+
+    window.addEventListener("focus", reload);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", reload);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [merchantId, reload]);
 
   const states = useMemo(() => {
     const next: Record<number, boolean> = {};

@@ -11,7 +11,6 @@ import {
   normalizeTopOffersBar,
   type TopOffersBarConfig as Config,
 } from "@/lib/top-offers-bar";
-import { isSupabaseConfigured } from "@/lib/supabase";
 import { readMerchantId, writeModuleSettings } from "@/lib/settings";
 import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
@@ -124,10 +123,6 @@ export default function TopOffersBarConfig() {
 
   async function save() {
     const next = normalizeTopOffersBar(config);
-    if (!isSupabaseConfigured()) {
-      show("تعذّر الحفظ: إعدادات قاعدة البيانات غير مهيّأة", "warning", 4000);
-      return;
-    }
     const ok = await writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
     if (!ok) {
       setDraft(next);

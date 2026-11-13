@@ -72,38 +72,5 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ ok: false, error: "write_failed" }, { status: 500 });
   }
-
-  await publishSettingsChanged(merchantId, moduleNum);
-
   return NextResponse.json({ ok: true });
-}
-
-/** Wake every open dashboard of this merchant; clients then refetch. */
-async function publishSettingsChanged(merchantId: number, moduleNum: number) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !key) return;
-
-  try {
-    await fetch(`${url}/realtime/v1/api/broadcast`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: key,
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            topic: `settings:${merchantId}`,
-            event: "updated",
-            payload: { moduleNum },
-          },
-        ],
-      }),
-      cache: "no-store",
-    });
-  } catch {
-    /* clients also refetch on focus, so a missed ping is not fatal */
-  }
 }
