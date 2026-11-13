@@ -255,7 +255,7 @@
       // Radial labels: baseline always points outward from the hub.
       text.setAttribute(
         "transform",
-        "rotate(" + mid + " 100 100) rotate(-90 100 64)"
+        "rotate(" + mid + " 100 100) rotate(-90 100 52)"
       );
       text.textContent = truncate(prize.label, maxChars);
       svg.appendChild(text);
