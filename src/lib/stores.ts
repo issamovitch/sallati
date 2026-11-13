@@ -1,27 +1,24 @@
-import { createSupabaseServerClient, getSupabaseBrowserClient } from "@/lib/supabase";
 import { readSessionToken } from "@/lib/settings";
 
 export type StoreRow = { merchant_id: number; store_url: string | null };
-
-function client() {
-  if (typeof window === "undefined") return createSupabaseServerClient();
-  return getSupabaseBrowserClient();
-}
 
 function mid(merchantId: number | null) {
   return merchantId ?? 0;
 }
 
+/** Read through our API: the browser no longer has table access. */
 export async function readStoreUrl(merchantId: number | null): Promise<string | null> {
-  const supabase = client();
-  if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("stores")
-    .select("store_url")
-    .eq("merchant_id", mid(merchantId))
-    .maybeSingle();
-  if (error || !data) return null;
-  return (data.store_url as string | null) ?? null;
+  if (merchantId === null) return null;
+  try {
+    const response = await fetch(`/api/store/status?merchant_id=${mid(merchantId)}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { storeUrl?: string | null };
+    return payload.storeUrl ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Writes go through the server: anon RLS no longer allows store updates. */

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/server-auth";
 import { DEFAULT_TOP_OFFERS_BAR, clampAnimationSpeed } from "@/lib/top-offers-bar";
 
 const CORS_HEADERS = {
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json(empty, { headers: CORS_HEADERS });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   if (!supabase) {
     return NextResponse.json(empty, { headers: CORS_HEADERS });
   }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/server-auth";
 import { DEFAULT_TOP_OFFERS_BAR } from "@/lib/top-offers-bar";
 
 const CORS_HEADERS = {
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   if (!Number.isFinite(merchantId) || merchantId <= 0) return empty;
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   if (!supabase) return empty;
 
   const { data, error } = await supabase

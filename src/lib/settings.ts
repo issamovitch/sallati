@@ -90,31 +90,37 @@ export function isEnabled(settings: unknown): boolean {
   );
 }
 
-/** Every settings row for a merchant, keyed by `module_num`. */
+/**
+ * Every settings row for a merchant, keyed by `module_num`. Read through our
+ * own API so the browser never queries the database (or holds a table key).
+ */
 export async function readMerchantSettings(
   merchantId: number | null,
 ): Promise<Record<number, unknown>> {
-  const supabase = client();
-  if (!supabase || merchantId === null) return {};
+  if (merchantId === null) return {};
 
-  const { data, error } = await supabase
-    .from(SETTINGS_TABLE)
-    .select("module_num, settings")
-    .eq("merchant_id", merchantId);
-
-  if (error || !data) return {};
-
-  const rows: Record<number, unknown> = {};
-  for (const row of data as { module_num: number; settings: unknown }[]) {
-    rows[row.module_num] = row.settings;
+  try {
+    const response = await fetch(
+      `/api/settings?token=${encodeURIComponent(readSessionToken())}`,
+      { cache: "no-store" },
+    );
+    if (!response.ok) return {};
+    const payload = (await response.json()) as {
+      rows?: Record<string, unknown>;
+    };
+    const rows: Record<number, unknown> = {};
+    for (const [key, value] of Object.entries(payload.rows ?? {})) {
+      rows[Number(key)] = value;
+    }
+    return rows;
+  } catch {
+    return {};
   }
-  return rows;
 }
 
 /**
- * One Realtime channel per merchant. `onResync` fires after a reconnect
- * because events sent while the socket was down are never replayed.
- * Requires `public.settings` in the `supabase_realtime` publication.
+ * Broadcast ping (no table access). The server publishes after each write;
+ * clients refetch. Reconnects also resync, since pings are not replayed.
  */
 export function subscribeMerchantSettings(
   merchantId: number | null,
@@ -130,20 +136,9 @@ export function subscribeMerchantSettings(
 
   const channel = supabase
     .channel(`settings:${merchantId}`)
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: SETTINGS_TABLE,
-        filter: `merchant_id=eq.${merchantId}`,
-      },
-      (payload) => {
-        const row = payload.new as { module_num?: number; settings?: unknown } | null;
-        if (!row?.module_num) return;
-        handlers.onRow(row.module_num, row.settings);
-      },
-    )
+    .on("broadcast", { event: "updated" }, () => {
+      handlers.onResync();
+    })
     .subscribe((status) => {
       if (status !== "SUBSCRIBED") return;
       if (joined) handlers.onResync();

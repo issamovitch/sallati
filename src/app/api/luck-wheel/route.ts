@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase";
+import { createSupabaseAdminClient } from "@/lib/server-auth";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { normalizeLuckWheel } from "@/lib/luck-wheel";
 import { moduleNumbers } from "@/lib/modules";
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ enabled: false }, { headers: CORS_HEADERS });
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
   if (!supabase) {
     return NextResponse.json({ enabled: false }, { headers: CORS_HEADERS });
   }
