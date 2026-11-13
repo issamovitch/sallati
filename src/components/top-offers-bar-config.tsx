@@ -11,7 +11,8 @@ import {
   normalizeTopOffersBar,
   type TopOffersBarConfig as Config,
 } from "@/lib/top-offers-bar";
-import { readMerchantId, writeModuleSettings } from "@/lib/settings";
+import { readMerchantId, takePendingSave, queuePendingSave, writeModuleSettings } from "@/lib/settings";
+import { embedded } from "@salla.sa/embedded-sdk";
 import { useModuleConfig } from "@/components/settings-provider";
 import { moduleNumbers } from "@/lib/modules";
 import {
@@ -57,7 +58,12 @@ function buildPreviewDoc(snippet: string) {
 
 export default function TopOffersBarConfig() {
   const { settings: remote, reload } = useModuleConfig(OFFERS_MODULE_NUM);
-  const [draft, setDraft] = useState<Config | null>(null);
+  // A save interrupted by token expiry is replayed with the reloaded session.
+  const [draft, setDraft] = useState<Config | null>(() => {
+    const pending = takePendingSave(readMerchantId(), OFFERS_MODULE_NUM);
+    return pending ? normalizeTopOffersBar(pending) : null;
+  });
+  const retrying = useRef(false);
   const [snippet, setSnippet] = useState("");
   const [previewKey, setPreviewKey] = useState(0);
   const previewRef = useRef<HTMLIFrameElement | null>(null);
@@ -123,17 +129,39 @@ export default function TopOffersBarConfig() {
 
   async function save() {
     const next = normalizeTopOffersBar(config);
-    const ok = await writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
-    if (!ok) {
+    const result = await writeModuleSettings(readMerchantId(), OFFERS_MODULE_NUM, next);
+
+    if (result === "unauthorized") {
+      // Token expired: keep the edit, reload the iframe, replay after reload.
+      queuePendingSave(readMerchantId(), OFFERS_MODULE_NUM, next);
+      show("انتهت الجلسة، نعيد الحفظ تلقائيًا…", "warning", 3000);
+      try {
+        embedded.auth.refresh();
+      } catch {
+        /* host unavailable */
+      }
+      return;
+    }
+
+    if (result === "failed") {
       setDraft(next);
       show("تعذّر الحفظ، حاول مرة أخرى", "warning", 4000);
       return;
     }
+
     await reload();
     setDraft(null);
     refreshPreview();
     show("تم الحفظ");
   }
+
+  // Replay a save that was interrupted by the token refresh.
+  useEffect(() => {
+    if (!draft || retrying.current) return;
+    retrying.current = true;
+    void save();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const showDuration = config.texts.length > 1;
 

@@ -21,12 +21,15 @@ export function readSessionToken(): string {
 /**
  * Writes go through the server: public RLS no longer allows anon writes, and
  * the route proves ownership with the Salla session token before writing.
+ * "unauthorized" means that token expired (Salla tokens last ~5 minutes).
  */
+export type WriteResult = "ok" | "unauthorized" | "failed";
+
 export async function writeModuleSettings<T>(
   _merchantId: number | null,
   moduleNum: number,
   settings: T,
-): Promise<boolean> {
+): Promise<WriteResult> {
   try {
     const response = await fetch("/api/settings", {
       method: "POST",
@@ -37,9 +40,50 @@ export async function writeModuleSettings<T>(
         settings,
       }),
     });
-    return response.ok;
+    if (response.status === 401) return "unauthorized";
+    return response.ok ? "ok" : "failed";
   } catch {
-    return false;
+    return "failed";
+  }
+}
+
+/**
+ * Pending save kept across the iframe reload that follows a token refresh.
+ * Transient, scoped by merchant + module, removed as soon as it is replayed.
+ */
+const PENDING_PREFIX = "sallati.pending-save";
+
+function pendingKey(merchantId: number | null, moduleNum: number) {
+  return `${PENDING_PREFIX}.${merchantId ?? 0}.${moduleNum}`;
+}
+
+export function queuePendingSave(
+  merchantId: number | null,
+  moduleNum: number,
+  settings: unknown,
+) {
+  try {
+    sessionStorage.setItem(
+      pendingKey(merchantId, moduleNum),
+      JSON.stringify(settings),
+    );
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function takePendingSave(
+  merchantId: number | null,
+  moduleNum: number,
+): Record<string, unknown> | null {
+  try {
+    const key = pendingKey(merchantId, moduleNum);
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    sessionStorage.removeItem(key);
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return null;
   }
 }
 
